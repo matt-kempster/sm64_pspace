@@ -29,6 +29,11 @@ const GeoLayout castle_grounds_area_1_level[] = {
 			GEO_OPEN_NODE(),
 				GEO_CAMERA(1, 0, 0, 0, 0, -213, 0, geo_camera_main),
 				GEO_OPEN_NODE(),
+
+					GEO_ASM(   0, geo_movtex_pause_control),
+					GEO_ASM(0x1601, geo_movtex_draw_nocolor),
+					GEO_ASM(0x1601, geo_movtex_draw_water_regions),
+
 					GEO_BRANCH(1, castle_grounds_area_1_Level),
 					GEO_RENDER_OBJ(),
 					GEO_ASM(0, geo_envfx_main),

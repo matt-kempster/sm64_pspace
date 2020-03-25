@@ -537,6 +537,8 @@ extern u8 wf_movtex_water[];
 extern u8 castle_courtyard_movtex_star_statue_water[];
 extern u8 ttm_movtex_puddle[];
 
+extern u8 castle_grounds_movtex_collection_me_me[];
+
 /**
  * Find the quadCollection for a given quad collection id.
  */
@@ -577,7 +579,8 @@ void *get_quad_collection_from_id(u32 id) {
         case THI_MOVTEX_AREA2_WATER:
             return thi_movtex_area2_water;
         case CASTLE_GROUNDS_MOVTEX_WATER:
-            return castle_grounds_movtex_water;
+            // return castle_grounds_movtex_water;
+            return castle_grounds_movtex_collection_me_me;
         case LLL_MOVTEX_VOLCANO_FLOOR_LAVA:
             return lll_movtex_volcano_floor_lava;
         case DDD_MOVTEX_AREA1_WATER:

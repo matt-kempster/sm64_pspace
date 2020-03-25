@@ -73,6 +73,7 @@ extern f32 gPaintingMarioYEntry;
 #define THI_MOVTEX_AREA1_WATER                      (   1 | MOVTEX_AREA_THI)
 #define THI_MOVTEX_AREA2_WATER                      (   2 | MOVTEX_AREA_THI)
 #define CASTLE_GROUNDS_MOVTEX_WATER                 (   1 | MOVTEX_AREA_CASTLE_GROUNDS)
+#define CASTLE_GROUNDS_ME_ME_ME                     (   1 | MOVTEX_AREA_CASTLE_GROUNDS)
 #define LLL_MOVTEX_VOLCANO_FLOOR_LAVA               (   2 | MOVTEX_AREA_LLL)
 #define DDD_MOVTEX_AREA1_WATER                      (   1 | MOVTEX_AREA_DDD)
 #define DDD_MOVTEX_AREA2_WATER                      (   2 | MOVTEX_AREA_DDD)

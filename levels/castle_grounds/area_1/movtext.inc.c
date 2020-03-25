@@ -1,0 +1,19 @@
+static Movtex castle_grounds_movtex_me_me_me[] = {
+    MOV_TEX_INIT_LOAD(    1),
+    MOV_TEX_ROT_SPEED(   20),
+    MOV_TEX_ROT_SCALE(   15),
+    MOV_TEX_4_BOX_TRIS(-1513, -674),
+    MOV_TEX_4_BOX_TRIS(-1513,   674),
+    MOV_TEX_4_BOX_TRIS( 1513,   674),
+    MOV_TEX_4_BOX_TRIS( 1513, -674),
+    MOV_TEX_ROT(     ROTATE_COUNTER_CLOCKWISE),
+    MOV_TEX_ALPHA(    0x96),
+    MOV_TEX_DEFINE(  TEXTURE_WATER),
+    MOV_TEX_END(),
+};
+
+const struct MovtexQuadCollection castle_grounds_movtex_collection_me_me[] = {
+    {0, castle_grounds_movtex_me_me_me},
+    {-1, NULL},
+};
+

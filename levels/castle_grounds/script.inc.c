@@ -1,4 +1,7 @@
 	AREA(1, castle_grounds_area_1_level),
+		OBJECT(0x38, -707, 573, -13, -90, 0, 0, 0, bhvWaterLevelDiamond),
+		OBJECT(0x38, 668, -306, 0, -90, 0, 0, 0, bhvWaterLevelDiamond),
+		OBJECT(0x38, 121, 70, -137, -90, 0, 0, 0, bhvWaterLevelDiamond),
 		TERRAIN(castle_grounds_area_1_collision),
 		MACRO_OBJECTS(castle_grounds_area_1_Area_macro_objs),
 		SET_BACKGROUND_MUSIC(0x00, SEQ_LEVEL_GRASS),

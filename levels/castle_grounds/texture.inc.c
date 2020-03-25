@@ -12,3 +12,4 @@ ALIGNED8 static const u8 castle_grounds_seg7_texture_07001000[] = {
 ALIGNED8 static const u8 castle_grounds_seg7_texture_07002000[] = {
 #include "levels/castle_grounds/2.rgba16.inc.c"
 };
+#include "levels/castle_grounds/texture_include.inc.c"

@@ -1,7 +1,7 @@
 static Movtex castle_grounds_movtex_me_me_me[] = {
     MOV_TEX_INIT_LOAD(    1),
     MOV_TEX_ROT_SPEED(   20),
-    MOV_TEX_ROT_SCALE(   15),
+    MOV_TEX_ROT_SCALE(   5),
     MOV_TEX_4_BOX_TRIS(-1513, -674),
     MOV_TEX_4_BOX_TRIS(-1513,   674),
     MOV_TEX_4_BOX_TRIS( 1513,   674),

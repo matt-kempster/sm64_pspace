@@ -14,7 +14,7 @@ void bhv_init_changing_water_level_loop(void) {
 }
 
 void bhv_water_level_diamond_loop(void) {
-    if (gEnvironmentRegions != NULL) {
+    // if (gEnvironmentRegions != NULL) {
         switch (o->oAction) {
             case WATER_LEVEL_DIAMOND_ACT_INIT:
                 o->oFaceAngleYaw = 0;
@@ -60,5 +60,5 @@ void bhv_water_level_diamond_loop(void) {
                 break;
         }
         o->oFaceAngleYaw += o->oAngleVelYaw;
-    }
+    // }
 }

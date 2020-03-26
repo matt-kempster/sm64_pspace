@@ -15,6 +15,9 @@
 #include "make_const_nonconst.h"
 #include "levels/castle_grounds/header.h"
 
+#include "levels/wdw/header.h"
+
+
 static const LevelScript script_func_local_1[] = {
     WARP_NODE(/*id*/ 0x00, /*destLevel*/ LEVEL_CASTLE, /*destArea*/ 0x01, /*destNode*/ 0x00, /*flags*/ WARP_NO_CHECKPOINT),
     WARP_NODE(/*id*/ 0x01, /*destLevel*/ LEVEL_CASTLE, /*destArea*/ 0x01, /*destNode*/ 0x01, /*flags*/ WARP_NO_CHECKPOINT),
@@ -130,7 +133,7 @@ const LevelScript level_castle_grounds_entry[] = {
 //        TERRAIN_TYPE(/*terrainType*/ TERRAIN_GRASS),
 //    END_AREA(),
 
-    #include "levels/castle_grounds/script.inc.c"
+    #include "levels/castle_grounds/script.inc.c" 
 
 	FREE_LEVEL_POOL(),
     MARIO_POS(0x01, 0, 0, 162, 0),

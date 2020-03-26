@@ -1,0 +1,188 @@
+\documentclass[10pt, titlepage]{article}
+\usepackage[paperwidth=600pt, margin=1in]{geometry} 
+\usepackage{amsmath,amsthm,amssymb,amsfonts,enumitem,mathtools,stmaryrd,graphicx}
+\usepackage{tikz}
+\usepackage{tikz-cd}
+\usepackage{mathrsfs}
+\usepackage{bbm}
+\usepackage{mathtools}
+\usepackage{fancyhdr}
+\usepackage{ragged2e}
+\usepackage{xfrac}
+\pagestyle{fancy}
+\setlength{\headheight}{15pt}
+% \usepackage{newpxtext}
+% \usepackage{newpxmath}
+\usepackage{unicode-math}
+
+
+% Testing lucida...
+% \usepackage{fontspec} 
+% \usepackage{mathspec}
+\setmainfont{LucidaBrightOT}[ 
+Path = fonts/,
+Extension = .otf,
+BoldFont = *-Demi,
+ItalicFont = LucidaBrightOT-Italic.otf,
+BoldItalicFont = LucidaBrightOT-DemiItalic.otf
+% UprightFont = *-Regular,
+% ...]
+]
+\setmathfont{LucidaBrightMathOT}[Path = fonts/, Extension=.otf]
+% \setmathfont[range=\mathup/{latin,Latin}]{TeX Gyre Heros}
+% \setmathsfont(Latin){[LucidaBrightMathOT.otf]}
+% \setmathrm{[LucidaBrightMathOT.otf]}
+
+% \setallmainfonts(Digits,Latin){[LucidaBrightMathOT.otf]}
+
+
+\usepackage{setspace}
+\renewcommand{\baselinestretch}{1.15} 
+
+% \DeclareMathSizes{12}{13}{7}{7}
+
+
+
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\PP}{\mathbb{P}}
+\newcommand{\E}{\mathbb{E}}
+
+
+\DeclareMathOperator{\Ext}{Ext}
+\DeclareMathOperator{\Hom}{Hom}
+
+\newcommand{\RP}{\R \mathrm{P}}
+\newcommand{\CP}{\C \mathrm{P}}
+
+
+\newcommand{\Mod}[1]{\ (\text{mod}\ #1)}
+\newcommand{\derives}{\overset{*}{\Rightarrow}}
+
+\newcommand\restrict[1]{\raisebox{-.5ex}{$|$}_{#1}}
+
+\newcommand{\powerset}{\raisebox{.15\baselineskip}
+{\Large\ensuremath{\wp}}}
+\makeatletter
+\newcommand{\fixed@sra}{$\vrule height 2\fontdimen22\textfont2 width 0pt\rightarrow$}
+\newcommand{\shortarrow}[1]{%
+  \mathrel{\text{\rotatebox[origin=c]{\numexpr#1*45}{\fixed@sra}}}
+}
+\makeatother
+
+\newcommand{\transv}{\mathrel{\text{\tpitchfork}}}
+\makeatletter
+\newcommand{\tpitchfork}{%
+  \vbox{
+    \baselineskip\z@skip
+    \lineskip-.52ex
+    \lineskiplimit\maxdimen
+    \m@th
+    \ialign{##\crcr\hidewidth\smash{$-$}\hidewidth\crcr$\pitchfork$\crcr}
+  }%
+}
+\makeatother
+
+\makeatletter
+\newcommand*{\bigcdot}{%
+  \mathbin{\mathpalette\bigcdot@{}}%
+}
+\newcommand*{\bigcdot@scalefactor}{.5}
+\newcommand*{\bigcdot@widthfactor}{1.15}
+\newcommand*{\bigcdot@}[2]{%
+  % #1: math style
+  % #2: unused
+  \sbox0{$#1\vcenter{}$}% math axis
+  \sbox2{$#1\cdot\m@th$}%
+  \hbox to \bigcdot@widthfactor\wd2{%
+    \hfil
+    \raise\ht0\hbox{%
+      \scalebox{\bigcdot@scalefactor}{%
+        \lower\ht0\hbox{$#1\bullet\m@th$}%
+      }%
+    }%
+    \hfil
+  }%
+}
+\makeatother
+
+
+\let\oldref\ref
+\renewcommand{\ref}[1]{(\oldref{#1})}
+
+\binoppenalty=\maxdimen
+\relpenalty=\maxdimen
+ 
+\newenvironment{problem}[2][Problem]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+
+\newenvironment{notproblem}[2]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+
+\parskip=5pt
+
+\newenvironment{nscenter}
+ {\parskip=0pt\par\nopagebreak\centering}
+ {\par\noindent}
+
+\DeclareMathOperator{\Ima}{Im}
+\DeclareMathOperator{\Ker}{Ker}
+
+\setlist[enumerate]{nosep}
+
+\lhead{Super Mario 64 is PSPACE-complete}
+\rhead{Matt Kempster}
+
+\begin{document}
+
+\title{Super Mario 64 is PSPACE-complete}
+\author{Matt Kempster}
+\date{}
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\setlength\emergencystretch{\hsize}
+
+\input{abstract}
+
+\input{intro.tex}
+
+
+\section*{Acknowledgments}
+% I would like to thank Eitan Borgnia and Siddharth Prasad, who aided every step of this process.
+
+\nocite{*}
+% \bibliography{mybib}
+% \bibliographystyle{alpha}
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

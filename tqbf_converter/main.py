@@ -17,7 +17,28 @@ class CNF_3:
 
 
 def get_3cnf_from_formula(formula: str) -> CNF_3:
-    pass
+    clauses: List[Clause] = []
+    str_clauses = formula.split(";")
+    for str_clause in str_clauses:
+        literals = str_clause.split(",")
+        int_literals = tuple(int(lit) for lit in literals)
+        if len(int_literals) != 3:
+            raise ValueError(
+                "Error parsing formula! This clause doesn't have exactly 3 literals: "
+                f"{str_clause} (in formula {formula})"
+            )
+        clauses.append(int_literals)
+    return CNF_3(clauses)
+
+
+def verify_formula(quantifiers: int, formula: CNF_3) -> None:
+    for clause in formula.clauses:
+        for literal in clause:
+            if literal > quantifiers or literal < -quantifiers:
+                raise ValueError(
+                    f"Formula verification failed! The literal {literal} in clause "
+                    f"{clause} exceeds the given number of quantifiers {quantifiers}."
+                )
 
 
 @dataclass
@@ -37,7 +58,10 @@ def translate_to_level(qbf: QBF) -> SM64Level:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Convert instances of QBF in prenex normal form to levels in Super Mario 64."
+        description=(
+            "Convert instances of QBF in prenex normal form to levels in "
+            "Super Mario 64."
+        )
     )
     parser.add_argument(
         "quantifiers",
@@ -48,8 +72,23 @@ if __name__ == "__main__":
             "quantifier is EXISTS(). If it is even, the last quantifier is FORALL()."
         ),
     )
-    parser.add_argument("formula", help=("A 3-CNF formula. Hm..."))
+    parser.add_argument(
+        "formula",
+        help=(
+            "A 3-CNF formula formatted such that each clause is a comma-separated "
+            "list of integers, and clauses are separated by semicolons. For example: "
+            "'1,2,3;-1,-2,4' would correspond to the 3-CNF formula "
+            "'(x1 OR x2 OR x3) AND (NOT(x1) OR NOT(x2) OR NOT(x4)'."
+        ),
+    )
     args = parser.parse_args()
-    input_qbf = QBF(args.quantifiers, get_3cnf_from_formula(args.formula))
+
+    if args.quantifiers < 1:
+        raise ValueError("You need at least one literal for a proper formula.")
+
+    formula_3cnf = get_3cnf_from_formula(args.formula)
+    verify_formula(args.quantifiers, formula_3cnf)
+
+    input_qbf = QBF(args.quantifiers, formula_3cnf)
     level = translate_to_level(input_qbf)
     print(level)

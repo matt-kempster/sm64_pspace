@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from typing import List, Tuple
 
@@ -48,8 +48,27 @@ class QBF:
 
 
 @dataclass
+class Collision:
+    vertices: List[str]
+    tris: List[str]
+    water_boxes: List[str]
+
+
+@dataclass
+class Area:
+    collision_inc_c: Collision
+    geo_inc_c: str
+    macro_inc_c: str  # mostly empty
+    movtext_inc_c: str
+
+
+@dataclass
 class SM64Level:
-    pass
+    areas: List[Area] = field(default_factory=list)
+    geo_inc_c: str = ""
+    leveldata_inc_c: str = ""
+    model_inc_c: str = ""
+    script_inc_c: str = ""
 
 
 def translate_to_level(qbf: QBF) -> SM64Level:

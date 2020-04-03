@@ -78,7 +78,8 @@ class DoorGadget:
     traverse_path_warp_to: Optional["DoorGadget"] = None
     close_path_warp_to: Optional["DoorGadget"] = None
 
-# Instead of name, maybe have subclasses; one for 
+
+# Instead of name, maybe have subclasses; one for
 # literal instances, one for quantifier subtypes, etc.
 
 
@@ -103,8 +104,27 @@ def translate_to_level(qbf: QBF) -> SM64Level:
     # There's also "choice gadgets", one per quantifier gadget.
     # Each door gadget requires its own "area".
 
+    # Note to self, need a 'door registry'
+
     # Initialize doors
     door_gadgets = []
+    for (literal_1, literal_2, literal_3) in qbf.clauses:
+        # fill in the UNK with door registry info
+        door_gadgets.append(DoorGadget(name=f"{literal_1}_occurrence_UNK"))
+        door_gadgets.append(DoorGadget(name=f"{literal_2}_occurrence_UNK"))
+        door_gadgets.append(DoorGadget(name=f"{literal_3}_occurrence_UNK"))
+
+    for alternation in range(1, qbf.variables + 1):
+        if alternation % 2 == 1:
+            # Existential.
+            door_gadgets.append(DoorGadget(name=f"existential_{alternation}_a"))
+            door_gadgets.append(DoorGadget(name=f"existential_{alternation}_b"))
+        else:
+            # Universal.
+            door_gadgets.append(DoorGadget(name=f"universal_{alternation}_a"))
+            door_gadgets.append(DoorGadget(name=f"universal_{alternation}_b"))
+            door_gadgets.append(DoorGadget(name=f"universal_{alternation}_c"))
+            door_gadgets.append(DoorGadget(name=f"universal_{alternation}_d"))
 
     # Hook up doors
 

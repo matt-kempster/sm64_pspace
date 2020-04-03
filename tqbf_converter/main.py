@@ -1,8 +1,8 @@
 #! /usr/bin/env python3
 import argparse
 from dataclasses import dataclass, field
-
-from typing import List, Tuple
+from enum import Enum, auto
+from typing import List, Optional, Tuple
 
 # A clause, in 3CNF, is composed of 3 literals.
 # Each literal can be positive or negative (but not 0).
@@ -49,17 +49,17 @@ class QBF:
 
 @dataclass
 class Collision:
-    vertices: List[str]
-    tris: List[str]
-    water_boxes: List[str]
+    vertices: List[str] = field(default_factory=list)
+    tris: List[str] = field(default_factory=list)
+    water_boxes: List[str] = field(default_factory=list)
 
 
 @dataclass
 class Area:
-    collision_inc_c: Collision
-    geo_inc_c: str
-    macro_inc_c: str  # mostly empty
-    movtext_inc_c: str
+    collision_inc_c: Collision = Collision()
+    geo_inc_c: str = ""
+    macro_inc_c: str = ""  # mostly empty
+    movtext_inc_c: str = ""
 
 
 @dataclass
@@ -71,8 +71,48 @@ class SM64Level:
     script_inc_c: str = ""
 
 
+@dataclass
+class DoorGadget:
+    name: str
+    open_path_warp_to: Optional["DoorGadget"] = None
+    traverse_path_warp_to: Optional["DoorGadget"] = None
+    close_path_warp_to: Optional["DoorGadget"] = None
+
+# Instead of name, maybe have subclasses; one for 
+# literal instances, one for quantifier subtypes, etc.
+
+
+class DoorGadgetEntranceType(Enum):
+    OPEN = auto()
+    TRAVERSE = auto()
+    CLOSE = auto()
+
+
+@dataclass
+class ChoiceGadget:
+    name: str
+    choices: List[Tuple[DoorGadget, DoorGadgetEntranceType]] = field(
+        default_factory=list
+    )
+
+
 def translate_to_level(qbf: QBF) -> SM64Level:
-    return SM64Level()
+    # There's 3 doors per clause; 1 per occurrence of a literal.
+    # There's 2 extra doors per existential quantifier gadget,
+    # and 4 extra doors per universal quantifier gadget.
+    # There's also "choice gadgets", one per quantifier gadget.
+    # Each door gadget requires its own "area".
+
+    # Initialize doors
+    door_gadgets = []
+
+    # Hook up doors
+
+    # Create areas
+    areas = [Area() for door in door_gadgets]  # probably more; lower bound
+
+    # Create the level
+    return SM64Level(areas=areas)
 
 
 if __name__ == "__main__":

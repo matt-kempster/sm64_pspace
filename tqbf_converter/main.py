@@ -111,27 +111,26 @@ def create_and_hook_up_doors_existential(
     ## Hook doors to literal instance doors.
 
     # Door B:
-    last_door_path: Tuple[DoorGadget, DoorEntrance] = (door_b, DoorEntrance.CLOSE)
-    for door in door_gadgets_literals[variable]:
-        warp_target = (door, DoorEntrance.OPEN)
+    last_door_path = (door_b, DoorEntrance.CLOSE)
+    full_path = (
+        [(door, DoorEntrance.OPEN) for door in door_gadgets_literals[variable]]
+        + [(door, DoorEntrance.CLOSE) for door in door_gadgets_literals[-variable]]
+        + [(door_a, DoorEntrance.OPEN), (door_a, DoorEntrance.TRAVERSE)]
+    )
+    for warp_target in full_path:
         last_door_path[0].path_exits[last_door_path[1]] = warp_target
         last_door_path = warp_target
-
-    for door in door_gadgets_literals[-variable]:
-        warp_target = (door, DoorEntrance.CLOSE)
-        last_door_path[0].path_exits[last_door_path[1]] = warp_target
-        last_door_path = warp_target
-
-    warp_target = (door_a, DoorEntrance.OPEN)
-    last_door_path[0].path_exits[last_door_path[1]] = warp_target
-    last_door_path = warp_target
-
-    warp_target = (door_a, DoorEntrance.TRAVERSE)
-    last_door_path[0].path_exits[last_door_path[1]] = warp_target
-    last_door_path = warp_target
 
     # Door A:
-    # (TODO)
+    last_door_path = (door_a, DoorEntrance.CLOSE)
+    full_path = (
+        [(door, DoorEntrance.OPEN) for door in door_gadgets_literals[-variable]]
+        + [(door, DoorEntrance.CLOSE) for door in door_gadgets_literals[variable]]
+        + [(door_b, DoorEntrance.OPEN), (door_b, DoorEntrance.TRAVERSE)]
+    )
+    for warp_target in full_path:
+        last_door_path[0].path_exits[last_door_path[1]] = warp_target
+        last_door_path = warp_target
 
 
 def translate_to_level(qbf: QBF) -> SM64Level:

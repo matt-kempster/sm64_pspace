@@ -71,22 +71,22 @@ class SM64Level:
     script_inc_c: str = ""
 
 
-@dataclass
-class DoorGadget:
-    name: str
-    open_path_warp_to: Optional["DoorGadget"] = None
-    traverse_path_warp_to: Optional["DoorGadget"] = None
-    close_path_warp_to: Optional["DoorGadget"] = None
-
-
-# Instead of name, maybe have subclasses; one for
-# literal instances, one for quantifier subtypes, etc.
-
-
 class DoorGadgetEntranceType(Enum):
     OPEN = auto()
     TRAVERSE = auto()
     CLOSE = auto()
+
+
+@dataclass
+class DoorGadget:
+    name: str
+    open_path_warp_to: Optional[Tuple["DoorGadget", DoorGadgetEntranceType]] = None
+    traverse_path_warp_to: Optional[Tuple["DoorGadget", DoorGadgetEntranceType]] = None
+    close_path_warp_to: Optional[Tuple["DoorGadget", DoorGadgetEntranceType]] = None
+
+
+# Instead of name, maybe have subclasses; one for
+# literal instances, one for quantifier subtypes, etc.
 
 
 @dataclass
@@ -106,7 +106,7 @@ def translate_to_level(qbf: QBF) -> SM64Level:
 
     # Note to self, need a 'door registry'
 
-    # Initialize doors
+    ## Initialize doors
     door_gadgets = []
     for (literal_1, literal_2, literal_3) in qbf.clauses:
         # fill in the UNK with door registry info
@@ -126,7 +126,19 @@ def translate_to_level(qbf: QBF) -> SM64Level:
             door_gadgets.append(DoorGadget(name=f"universal_{alternation}_c"))
             door_gadgets.append(DoorGadget(name=f"universal_{alternation}_d"))
 
-    # Hook up doors
+    ## Hook up doors
+    # Existential.
+    ChoiceGadget(
+        name="existential_{alternation}",
+        choices=[
+            (DoorGadget("existential_{alternation}_b"), DoorGadgetEntranceType.CLOSE),
+            (DoorGadget("existential_{alternation}_a"), DoorGadgetEntranceType.CLOSE),
+        ],
+    )
+    DoorGadget("existential_{alternation}_b").close_path_warp_to = (
+        DoorGadget(name="{literal}_occurrence_{1}"),
+        DoorGadgetEntranceType.OPEN,
+    )
 
     # Create areas
     areas = [Area() for door in door_gadgets]  # probably more; lower bound

@@ -1,8 +1,9 @@
 #! /usr/bin/env python3
 import argparse
+from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import List, Optional, Tuple
+from typing import DefaultDict, Dict, List, Optional, Tuple
 
 # A clause, in 3CNF, is composed of 3 literals.
 # Each literal can be positive or negative (but not 0).
@@ -104,41 +105,76 @@ def translate_to_level(qbf: QBF) -> SM64Level:
     # There's also "choice gadgets", one per quantifier gadget.
     # Each door gadget requires its own "area".
 
-    # Note to self, need a 'door registry'
-
     ## Initialize doors
     door_gadgets = []
+    door_gadgets_literals: DefaultDict[int, List[DoorGadget]] = defaultdict(list)
+    choice_gadgets = []
     for (literal_1, literal_2, literal_3) in qbf.clauses:
-        # fill in the UNK with door registry info
-        door_gadgets.append(DoorGadget(name=f"{literal_1}_occurrence_UNK"))
-        door_gadgets.append(DoorGadget(name=f"{literal_2}_occurrence_UNK"))
-        door_gadgets.append(DoorGadget(name=f"{literal_3}_occurrence_UNK"))
+        # Create a door for each literal appearance
+        door_gadgets_literals[literal_1].append(DoorGadget(name=str(literal_1)))
+        door_gadgets_literals[literal_2].append(DoorGadget(name=str(literal_2)))
+        door_gadgets_literals[literal_3].append(DoorGadget(name=str(literal_3)))
+
+        # Create a choice gadget for each clause
+        # (TODO)
+
+        # Hook them up (?) (TODO)
 
     for alternation in range(1, qbf.variables + 1):
         if alternation % 2 == 1:
-            # Existential.
-            door_gadgets.append(DoorGadget(name=f"existential_{alternation}_a"))
-            door_gadgets.append(DoorGadget(name=f"existential_{alternation}_b"))
+            ## Existential.
+
+            # Create doors.
+            door_a = DoorGadget(name=f"existential_{alternation}_a")
+            door_b = DoorGadget(name=f"existential_{alternation}_b")
+
+            # Create choice gadget.
+            choice_gadgets.append(
+                ChoiceGadget(
+                    name=f"existential_{alternation}_choices",
+                    choices=[
+                        (door_b, DoorGadgetEntranceType.CLOSE),
+                        (door_a, DoorGadgetEntranceType.CLOSE),
+                    ],
+                )
+            )
+            # Hook doors to literal instance doors.
+            # (TODO)
+            for i, door in enumerate(door_gadgets_literals[alternation]):
+                if i == 0:
+                    door_b.close_path_warp_to = (
+                        door,
+                        DoorGadgetEntranceType.OPEN,
+                    )
+                else:
+                    door_gadgets_literals[alternation][i - 1].open_path_warp_to = (
+                        door,
+                        DoorGadgetEntranceType.OPEN,
+                    )
+            else:
+                pass  # don't forget this edge case
+
+            for door in door_gadgets_literals[-alternation]:
+                pass
+            else:
+                pass
+
+            DoorGadget(f"existential_{alternation}_b").close_path_warp_to = (
+                DoorGadget(name=f"{alternation}_occurrence_{1}"),  # if exists
+                DoorGadgetEntranceType.OPEN,
+            )
+
         else:
-            # Universal.
+            ## Universal.
+
+            # Create doors.
             door_gadgets.append(DoorGadget(name=f"universal_{alternation}_a"))
             door_gadgets.append(DoorGadget(name=f"universal_{alternation}_b"))
             door_gadgets.append(DoorGadget(name=f"universal_{alternation}_c"))
             door_gadgets.append(DoorGadget(name=f"universal_{alternation}_d"))
 
-    ## Hook up doors
-    # Existential.
-    ChoiceGadget(
-        name="existential_{alternation}",
-        choices=[
-            (DoorGadget("existential_{alternation}_b"), DoorGadgetEntranceType.CLOSE),
-            (DoorGadget("existential_{alternation}_a"), DoorGadgetEntranceType.CLOSE),
-        ],
-    )
-    DoorGadget("existential_{alternation}_b").close_path_warp_to = (
-        DoorGadget(name="{literal}_occurrence_{1}"),
-        DoorGadgetEntranceType.OPEN,
-    )
+            # Hook doors to literal instance doors.
+            # (TODO)
 
     # Create areas
     areas = [Area() for door in door_gadgets]  # probably more; lower bound

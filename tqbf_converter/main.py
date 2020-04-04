@@ -133,6 +133,47 @@ def create_and_hook_up_doors_existential(
         last_door_path = warp_target
 
 
+def create_and_hook_up_doors_universal(
+    variable: int, door_gadgets_literals: Mapping[int, Iterable[DoorGadget]]
+) -> None:
+    # Create doors.
+    door_a = DoorGadget(name=f"universal_{variable}_a")
+    door_b = DoorGadget(name=f"universal_{variable}_b")
+    door_c = DoorGadget(name=f"universal_{variable}_c")
+    door_d = DoorGadget(name=f"universal_{variable}_d")
+
+    # Create choice gadget.
+    # TODO
+
+    # Hook doors to literal instance doors.
+    last_door_path = (door_d, DoorEntrance.CLOSE)
+    full_path = (
+        [(door, DoorEntrance.OPEN) for door in door_gadgets_literals[variable]]
+        + [(door, DoorEntrance.CLOSE) for door in door_gadgets_literals[-variable]]
+        + [(door_a, DoorEntrance.OPEN), (door_a, DoorEntrance.TRAVERSE)]
+    )
+    for warp_target in full_path:
+        last_door_path[0].path_exits[last_door_path[1]] = warp_target
+        last_door_path = warp_target
+
+    # Then, hook to next quantifier...
+    # Then, come BACK from that quantifier via a choice gadget...
+    last_door_path = (door_b, DoorEntrance.OPEN)
+    full_path = (
+        [(door_b, DoorEntrance.TRAVERSE), (door_b, DoorEntrance.CLOSE)]
+        + [(door, DoorEntrance.CLOSE) for door in door_gadgets_literals[variable]]
+        + [(door, DoorEntrance.OPEN) for door in door_gadgets_literals[-variable]]
+        + [
+            (door_d, DoorEntrance.OPEN),
+            (door_c, DoorEntrance.OPEN),
+            (door_c, DoorEntrance.TRAVERSE),
+            (door_c, DoorEntrance.CLOSE),
+            (door_a, DoorEntrance.CLOSE),
+        ]
+    )
+    # Then, hook to next quantifier again.
+
+
 def translate_to_level(qbf: QBF) -> SM64Level:
     # There's 3 doors per clause; 1 per occurrence of a literal.
     # There's 2 extra doors per existential quantifier gadget,
@@ -146,9 +187,21 @@ def translate_to_level(qbf: QBF) -> SM64Level:
     choice_gadgets = []
     for (literal_1, literal_2, literal_3) in qbf.clauses:
         # Create a door for each literal appearance
-        door_gadgets_literals[literal_1].append(DoorGadget(name=str(literal_1)))
-        door_gadgets_literals[literal_2].append(DoorGadget(name=str(literal_2)))
-        door_gadgets_literals[literal_3].append(DoorGadget(name=str(literal_3)))
+        door_1 = DoorGadget(name=str(literal_1))
+        door_2 = DoorGadget(name=str(literal_2))
+        door_3 = DoorGadget(name=str(literal_3))
+        door_gadgets_literals[literal_1].append(door_1)
+        door_gadgets_literals[literal_2].append(door_2)
+        door_gadgets_literals[literal_3].append(door_3)
+
+        ChoiceGadget(
+            name="clause",
+            choices=[
+                (door_1, DoorEntrance.TRAVERSE),
+                (door_2, DoorEntrance.TRAVERSE),
+                (door_3, DoorEntrance.TRAVERSE),
+            ],
+        )
 
         # Create a choice gadget for each clause
         # (TODO)
@@ -159,18 +212,9 @@ def translate_to_level(qbf: QBF) -> SM64Level:
         if alternation % 2 == 1:
             ## Existential.
             create_and_hook_up_doors_existential(alternation)
-
         else:
             ## Universal.
-
-            # Create doors.
-            door_gadgets.append(DoorGadget(name=f"universal_{alternation}_a"))
-            door_gadgets.append(DoorGadget(name=f"universal_{alternation}_b"))
-            door_gadgets.append(DoorGadget(name=f"universal_{alternation}_c"))
-            door_gadgets.append(DoorGadget(name=f"universal_{alternation}_d"))
-
-            # Hook doors to literal instance doors.
-            # (TODO)
+            create_and_hook_up_doors_universal(alternation)
 
     # Create areas
     areas = [Area() for door in door_gadgets]  # probably more; lower bound

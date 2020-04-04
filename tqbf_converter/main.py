@@ -3,7 +3,7 @@ import argparse
 from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import DefaultDict, Dict, List, Optional, Tuple
+from typing import DefaultDict, Dict, Iterable, List, Mapping, Optional, Tuple
 
 # A clause, in 3CNF, is composed of 3 literals.
 # Each literal can be positive or negative (but not 0).
@@ -72,7 +72,7 @@ class SM64Level:
     script_inc_c: str = ""
 
 
-class DoorGadgetEntranceType(Enum):
+class DoorEntrance(Enum):
     OPEN = auto()
     TRAVERSE = auto()
     CLOSE = auto()
@@ -81,9 +81,9 @@ class DoorGadgetEntranceType(Enum):
 @dataclass
 class DoorGadget:
     name: str
-    open_path_warp_to: Optional[Tuple["DoorGadget", DoorGadgetEntranceType]] = None
-    traverse_path_warp_to: Optional[Tuple["DoorGadget", DoorGadgetEntranceType]] = None
-    close_path_warp_to: Optional[Tuple["DoorGadget", DoorGadgetEntranceType]] = None
+    open_path_warp_to: Optional[Tuple["DoorGadget", DoorEntrance]] = None
+    traverse_path_warp_to: Optional[Tuple["DoorGadget", DoorEntrance]] = None
+    close_path_warp_to: Optional[Tuple["DoorGadget", DoorEntrance]] = None
 
 
 # Instead of name, maybe have subclasses; one for
@@ -93,9 +93,87 @@ class DoorGadget:
 @dataclass
 class ChoiceGadget:
     name: str
-    choices: List[Tuple[DoorGadget, DoorGadgetEntranceType]] = field(
-        default_factory=list
+    choices: List[Tuple[DoorGadget, DoorEntrance]] = field(default_factory=list)
+
+
+def create_and_hook_up_doors_existential(
+    variable: int, door_gadgets_literals: Mapping[int, Iterable[DoorGadget]]
+) -> None:
+
+    # Create doors.
+    door_a = DoorGadget(name=f"existential_{variable}_a")
+    door_b = DoorGadget(name=f"existential_{variable}_b")
+
+    # Create choice gadget.
+    choice_gadget = ChoiceGadget(
+        name=f"existential_{variable}_choices",
+        choices=[(door_b, DoorEntrance.CLOSE), (door_a, DoorEntrance.CLOSE)],
     )
+
+    ## Hook doors to literal instance doors.
+
+    # Door B:
+    last_door_path: Tuple[DoorGadget, DoorEntrance]
+    for i, door in enumerate(door_gadgets_literals[variable]):
+        warp_target = (door, DoorEntrance.OPEN)
+        if i == 0:
+            door_b.close_path_warp_to = warp_target
+        else:
+            # Maybe instead of i - 1, just store prev_door
+            door_gadgets_literals[variable][i - 1].open_path_warp_to = warp_target
+        last_door_path = warp_target
+    else:
+        # There were no occurrences of that literal.
+        last_door_path = (door_b, DoorEntrance.CLOSE)
+
+    last_door = last_door_path[0]
+    last_entrance = last_door_path[1]
+    for door in door_gadgets_literals[-variable]:
+        warp_target = (door, DoorEntrance.CLOSE)
+
+        if last_entrance == DoorEntrance.OPEN:
+            last_door.open_path_warp_to = warp_target
+        elif last_entrance == DoorEntrance.CLOSE:
+            last_door.close_path_warp_to = warp_target
+        else:
+            last_door.traverse_path_warp_to = warp_target
+
+        last_door = door
+        last_entrance = DoorEntrance.CLOSE
+        last_door_path = (last_door, last_entrance)
+    else:
+        # There were no occurrences of that literal.
+        # We have already set last_door_path, so pass.
+        pass
+
+    last_door = last_door_path[0]
+    last_entrance = last_door_path[1]
+    warp_target = (door_a, DoorEntrance.OPEN)
+    if last_entrance == DoorEntrance.OPEN:
+        last_door.open_path_warp_to = warp_target
+    elif last_entrance == DoorEntrance.CLOSE:
+        last_door.close_path_warp_to = warp_target
+    else:
+        last_door.traverse_path_warp_to = warp_target
+    last_door_path = warp_target
+
+    last_door = last_door_path[0]
+    last_entrance = last_door_path[1]
+    warp_target = (door_a, DoorEntrance.TRAVERSE)
+    if last_entrance == DoorEntrance.OPEN:
+        last_door.open_path_warp_to = warp_target
+    elif last_entrance == DoorEntrance.CLOSE:
+        last_door.close_path_warp_to = warp_target
+    else:
+        last_door.traverse_path_warp_to = warp_target
+    last_door_path = warp_target
+
+
+
+
+
+    # Door A:
+    # (TODO)
 
 
 def translate_to_level(qbf: QBF) -> SM64Level:
@@ -123,46 +201,7 @@ def translate_to_level(qbf: QBF) -> SM64Level:
     for alternation in range(1, qbf.variables + 1):
         if alternation % 2 == 1:
             ## Existential.
-
-            # Create doors.
-            door_a = DoorGadget(name=f"existential_{alternation}_a")
-            door_b = DoorGadget(name=f"existential_{alternation}_b")
-
-            # Create choice gadget.
-            choice_gadgets.append(
-                ChoiceGadget(
-                    name=f"existential_{alternation}_choices",
-                    choices=[
-                        (door_b, DoorGadgetEntranceType.CLOSE),
-                        (door_a, DoorGadgetEntranceType.CLOSE),
-                    ],
-                )
-            )
-            # Hook doors to literal instance doors.
-            # (TODO)
-            for i, door in enumerate(door_gadgets_literals[alternation]):
-                if i == 0:
-                    door_b.close_path_warp_to = (
-                        door,
-                        DoorGadgetEntranceType.OPEN,
-                    )
-                else:
-                    door_gadgets_literals[alternation][i - 1].open_path_warp_to = (
-                        door,
-                        DoorGadgetEntranceType.OPEN,
-                    )
-            else:
-                pass  # don't forget this edge case
-
-            for door in door_gadgets_literals[-alternation]:
-                pass
-            else:
-                pass
-
-            DoorGadget(f"existential_{alternation}_b").close_path_warp_to = (
-                DoorGadget(name=f"{alternation}_occurrence_{1}"),  # if exists
-                DoorGadgetEntranceType.OPEN,
-            )
+            create_and_hook_up_doors_existential(alternation)
 
         else:
             ## Universal.

@@ -22,12 +22,20 @@ def get_3cnf_from_formula(formula: str) -> CNF_3:
     str_clauses = formula.split(";")
     for str_clause in str_clauses:
         literals = str_clause.split(",")
-        int_literals = tuple(int(lit) for lit in literals)
-        if len(int_literals) != 3:
+        try:
+            literal_1, literal_2, literal_3 = literals
+        except ValueError as err:
             raise ValueError(
                 "Error parsing formula! This clause doesn't have exactly 3 literals: "
                 f"{str_clause} (in formula {formula})"
-            )
+            ) from err
+        try:
+            int_literals = (int(literal_1), int(literal_2), int(literal_3))
+        except ValueError as err:
+            raise ValueError(
+                f"Error parsing formula! One of these isn't an integer: {str_clause}"
+            ) from err
+
         clauses.append(int_literals)
     return CNF_3(clauses)
 
@@ -81,7 +89,7 @@ class DoorEntrance(Enum):
 @dataclass
 class DoorGadget:
     name: str
-    path_exits = Dict[DoorEntrance, "DoorGadget"] = field(default_factory=list)
+    path_exits: Dict[DoorEntrance, "DoorGadget"] = field(default_factory=dict)
 
 
 # Instead of name, maybe have subclasses; one for
@@ -118,7 +126,7 @@ def create_and_hook_up_doors_existential(
         + [(door_a, DoorEntrance.OPEN), (door_a, DoorEntrance.TRAVERSE)]
     )
     for warp_target in full_path:
-        last_door_path[0].path_exits[last_door_path[1]] = warp_target
+        last_door_path[0].path_exits[last_door_path[1]] = warp_target[0]
         last_door_path = warp_target
 
     # Door A:
@@ -129,7 +137,7 @@ def create_and_hook_up_doors_existential(
         + [(door_b, DoorEntrance.OPEN), (door_b, DoorEntrance.TRAVERSE)]
     )
     for warp_target in full_path:
-        last_door_path[0].path_exits[last_door_path[1]] = warp_target
+        last_door_path[0].path_exits[last_door_path[1]] = warp_target[0]
         last_door_path = warp_target
 
 
@@ -153,7 +161,7 @@ def create_and_hook_up_doors_universal(
         + [(door_a, DoorEntrance.OPEN), (door_a, DoorEntrance.TRAVERSE)]
     )
     for warp_target in full_path:
-        last_door_path[0].path_exits[last_door_path[1]] = warp_target
+        last_door_path[0].path_exits[last_door_path[1]] = warp_target[0]
         last_door_path = warp_target
 
     # Then, hook to next quantifier...
@@ -174,6 +182,10 @@ def create_and_hook_up_doors_universal(
     # Then, hook to next quantifier again.
 
 
+def create_and_hook_up_doors_clauses() -> DefaultDict[int, List[DoorGadget]]:
+    pass
+
+
 def translate_to_level(qbf: QBF) -> SM64Level:
     # There's 3 doors per clause; 1 per occurrence of a literal.
     # There's 2 extra doors per existential quantifier gadget,
@@ -182,10 +194,9 @@ def translate_to_level(qbf: QBF) -> SM64Level:
     # Each door gadget requires its own "area".
 
     ## Initialize doors
-    door_gadgets = []
     door_gadgets_literals: DefaultDict[int, List[DoorGadget]] = defaultdict(list)
-    choice_gadgets = []
-    for (literal_1, literal_2, literal_3) in qbf.clauses:
+    choice_gadgets: List[ChoiceGadget] = []
+    for (literal_1, literal_2, literal_3) in qbf.formula.clauses:
         # Create a door for each literal appearance
         door_1 = DoorGadget(name=str(literal_1))
         door_2 = DoorGadget(name=str(literal_2))
@@ -211,12 +222,13 @@ def translate_to_level(qbf: QBF) -> SM64Level:
     for alternation in range(1, qbf.variables + 1):
         if alternation % 2 == 1:
             ## Existential.
-            create_and_hook_up_doors_existential(alternation)
+            create_and_hook_up_doors_existential(alternation, door_gadgets_literals)
         else:
             ## Universal.
-            create_and_hook_up_doors_universal(alternation)
+            create_and_hook_up_doors_universal(alternation, door_gadgets_literals)
 
     # Create areas
+    door_gadgets: List[DoorGadget] = []
     areas = [Area() for door in door_gadgets]  # probably more; lower bound
 
     # Create the level

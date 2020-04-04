@@ -81,9 +81,7 @@ class DoorEntrance(Enum):
 @dataclass
 class DoorGadget:
     name: str
-    open_path_warp_to: Optional[Tuple["DoorGadget", DoorEntrance]] = None
-    traverse_path_warp_to: Optional[Tuple["DoorGadget", DoorEntrance]] = None
-    close_path_warp_to: Optional[Tuple["DoorGadget", DoorEntrance]] = None
+    path_exits = Dict[DoorEntrance, "DoorGadget"] = field(default_factory=list)
 
 
 # Instead of name, maybe have subclasses; one for
@@ -113,64 +111,24 @@ def create_and_hook_up_doors_existential(
     ## Hook doors to literal instance doors.
 
     # Door B:
-    last_door_path: Tuple[DoorGadget, DoorEntrance]
-    for i, door in enumerate(door_gadgets_literals[variable]):
+    last_door_path: Tuple[DoorGadget, DoorEntrance] = (door_b, DoorEntrance.CLOSE)
+    for door in door_gadgets_literals[variable]:
         warp_target = (door, DoorEntrance.OPEN)
-        if i == 0:
-            door_b.close_path_warp_to = warp_target
-        else:
-            # Maybe instead of i - 1, just store prev_door
-            door_gadgets_literals[variable][i - 1].open_path_warp_to = warp_target
+        last_door_path[0].path_exits[last_door_path[1]] = warp_target
         last_door_path = warp_target
-    else:
-        # There were no occurrences of that literal.
-        last_door_path = (door_b, DoorEntrance.CLOSE)
 
-    last_door = last_door_path[0]
-    last_entrance = last_door_path[1]
     for door in door_gadgets_literals[-variable]:
         warp_target = (door, DoorEntrance.CLOSE)
+        last_door_path[0].path_exits[last_door_path[1]] = warp_target
+        last_door_path = warp_target
 
-        if last_entrance == DoorEntrance.OPEN:
-            last_door.open_path_warp_to = warp_target
-        elif last_entrance == DoorEntrance.CLOSE:
-            last_door.close_path_warp_to = warp_target
-        else:
-            last_door.traverse_path_warp_to = warp_target
-
-        last_door = door
-        last_entrance = DoorEntrance.CLOSE
-        last_door_path = (last_door, last_entrance)
-    else:
-        # There were no occurrences of that literal.
-        # We have already set last_door_path, so pass.
-        pass
-
-    last_door = last_door_path[0]
-    last_entrance = last_door_path[1]
     warp_target = (door_a, DoorEntrance.OPEN)
-    if last_entrance == DoorEntrance.OPEN:
-        last_door.open_path_warp_to = warp_target
-    elif last_entrance == DoorEntrance.CLOSE:
-        last_door.close_path_warp_to = warp_target
-    else:
-        last_door.traverse_path_warp_to = warp_target
+    last_door_path[0].path_exits[last_door_path[1]] = warp_target
     last_door_path = warp_target
 
-    last_door = last_door_path[0]
-    last_entrance = last_door_path[1]
     warp_target = (door_a, DoorEntrance.TRAVERSE)
-    if last_entrance == DoorEntrance.OPEN:
-        last_door.open_path_warp_to = warp_target
-    elif last_entrance == DoorEntrance.CLOSE:
-        last_door.close_path_warp_to = warp_target
-    else:
-        last_door.traverse_path_warp_to = warp_target
+    last_door_path[0].path_exits[last_door_path[1]] = warp_target
     last_door_path = warp_target
-
-
-
-
 
     # Door A:
     # (TODO)

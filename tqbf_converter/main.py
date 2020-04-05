@@ -80,6 +80,11 @@ class SM64Level:
     script_inc_c: str = ""
 
 
+@dataclass
+class EndGadget:
+    pass
+
+
 class DoorEntrance(Enum):
     OPEN = auto()
     TRAVERSE = auto()
@@ -89,9 +94,9 @@ class DoorEntrance(Enum):
 @dataclass
 class DoorGadget:
     name: str
-    path_exits: Dict[DoorEntrance, Union["DoorPath", "ChoiceGadget"]] = field(
-        default_factory=dict
-    )
+    path_exits: Dict[
+        DoorEntrance, Union["DoorPath", "ChoiceGadget", EndGadget]
+    ] = field(default_factory=dict)
 
 
 DoorPath = Tuple[DoorGadget, DoorEntrance]
@@ -244,11 +249,19 @@ def create_and_hook_up_doors_clauses(
     return door_gadgets_literals, clause_choice
 
 
+@dataclass
+class StartGadget:
+    path_to: ChoiceGadget
+
+
 def create_and_hook_up_quantifiers(
     variables: int,
     door_gadgets_literals: DefaultDict[int, List[DoorGadget]],
     last_clause: ChoiceGadget,
-) -> None:
+) -> StartGadget:
+
+    start_gadget: Optional[StartGadget] = None
+
     # To interleave existential and universal quantifiers:
     #  - Existential's (door_a, TRAVERSE) and (door_b, TRAVERSE) -->
     #      Universal's (door_d, CLOSE).
@@ -268,42 +281,49 @@ def create_and_hook_up_quantifiers(
             curr_existential = create_and_hook_up_doors_existential(
                 alternation, door_gadgets_literals
             )
-            if prev_universal:
+            if not prev_universal:
+                # This is the first existential gadget, which should be
+                # connected from the "start" gadget.
+                start_gadget = StartGadget(path_to=curr_existential.choice_gadget)
+            else:
                 entrance = curr_existential.choice_gadget
                 prev_universal.door_a.path_exits[DoorEntrance.TRAVERSE] = entrance
                 prev_universal.door_a.path_exits[DoorEntrance.CLOSE] = entrance
-            else:
-                # This is the first existential gadget, which should be
-                # connected from the "start" gadget.
-                pass
+
             prev_existential = curr_existential
         else:
             ## Universal.
             curr_universal = create_and_hook_up_doors_universal(
                 alternation, door_gadgets_literals
             )
-            if prev_existential:
-                entrance = (curr_universal.door_d, DoorEntrance.CLOSE)
-                prev_existential.door_a.path_exits[DoorEntrance.TRAVERSE] = entrance
-                prev_existential.door_b.path_exits[DoorEntrance.TRAVERSE] = entrance
+            if not prev_existential:
+                raise RuntimeError("Missing existential gadget before universal gadget")
 
-            if prev_universal:
-                curr_universal.door_d.path_exits[
-                    DoorEntrance.TRAVERSE
-                ] = prev_universal.choice_gadget
-            else:
+            entrance = (curr_universal.door_d, DoorEntrance.CLOSE)
+            prev_existential.door_a.path_exits[DoorEntrance.TRAVERSE] = entrance
+            prev_existential.door_b.path_exits[DoorEntrance.TRAVERSE] = entrance
+
+            curr_exit: Union[ChoiceGadget, EndGadget]
+            if not prev_universal:
                 # This is the first universal gadget, which actually
                 # connects directly to the "end" gadget.
-                # (TODO)
-                pass
+                curr_exit = EndGadget()
+            else:
+                curr_exit = prev_universal.choice_gadget
+            curr_universal.door_d.path_exits[DoorEntrance.TRAVERSE] = curr_exit
 
             prev_universal = curr_universal
 
     for door_path in last_clause.choices:
         door_path[0].path_exits[door_path[1]] = curr_universal.choice_gadget
 
-    # This is where I'd return a start gadget... IF I HAD ONE!!!
-    return None
+    if not start_gadget:
+        raise RuntimeError("Start gadget never initialized - cannot proceed.")
+    return start_gadget
+
+
+def validate_gadgets(start_gadget: StartGadget):
+    pass
 
 
 def translate_to_level(qbf: QBF) -> SM64Level:
@@ -316,7 +336,10 @@ def translate_to_level(qbf: QBF) -> SM64Level:
     door_gadgets_literals, last_clause = create_and_hook_up_doors_clauses(
         qbf.formula.clauses
     )
-    create_and_hook_up_quantifiers(qbf.variables, door_gadgets_literals, last_clause)
+    start_gadget = create_and_hook_up_quantifiers(
+        qbf.variables, door_gadgets_literals, last_clause
+    )
+    validate_gadgets(start_gadget)
 
     # Create areas
     door_gadgets: List[DoorGadget] = []

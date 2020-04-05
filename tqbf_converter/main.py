@@ -3,7 +3,7 @@ import argparse
 from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import DefaultDict, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import DefaultDict, Dict, Iterable, List, Mapping, Optional, Tuple, Union
 
 # A clause, in 3CNF, is composed of 3 literals.
 # Each literal can be positive or negative (but not 0).
@@ -89,11 +89,9 @@ class DoorEntrance(Enum):
 @dataclass
 class DoorGadget:
     name: str
-    path_exits: Dict[DoorEntrance, "DoorGadget"] = field(default_factory=dict)
-
-
-# Instead of name, maybe have subclasses; one for
-# literal instances, one for quantifier subtypes, etc.
+    path_exits: Dict[DoorEntrance, Union["DoorGadget", "ChoiceGadget"]] = field(
+        default_factory=dict
+    )
 
 
 @dataclass
@@ -182,8 +180,39 @@ def create_and_hook_up_doors_universal(
     # Then, hook to next quantifier again.
 
 
-def create_and_hook_up_doors_clauses() -> DefaultDict[int, List[DoorGadget]]:
-    pass
+def create_and_hook_up_doors_clauses(
+    clauses: Iterable[Clause],
+) -> DefaultDict[int, List[DoorGadget]]:
+
+    door_gadgets_literals: DefaultDict[int, List[DoorGadget]] = defaultdict(list)
+    prev_door_1: Optional[DoorGadget] = None
+    prev_door_2: Optional[DoorGadget] = None
+    prev_door_3: Optional[DoorGadget] = None
+    for (literal_1, literal_2, literal_3) in clauses:
+        # Create a door for each literal appearance
+        door_1 = DoorGadget(name=str(literal_1))
+        door_2 = DoorGadget(name=str(literal_2))
+        door_3 = DoorGadget(name=str(literal_3))
+        door_gadgets_literals[literal_1].append(door_1)
+        door_gadgets_literals[literal_2].append(door_2)
+        door_gadgets_literals[literal_3].append(door_3)
+        clause_choice = ChoiceGadget(
+            name="clause",
+            choices=[
+                (door_1, DoorEntrance.TRAVERSE),
+                (door_2, DoorEntrance.TRAVERSE),
+                (door_3, DoorEntrance.TRAVERSE),
+            ],
+        )
+        if prev_door_1 and prev_door_2 and prev_door_3:
+            prev_door_1.path_exits[DoorEntrance.TRAVERSE] = clause_choice
+            prev_door_2.path_exits[DoorEntrance.TRAVERSE] = clause_choice
+            prev_door_3.path_exits[DoorEntrance.TRAVERSE] = clause_choice
+        prev_door_1 = door_1
+        prev_door_2 = door_2
+        prev_door_3 = door_3
+        # Hook them up (?) (TODO)
+    return door_gadgets_literals
 
 
 def translate_to_level(qbf: QBF) -> SM64Level:
@@ -194,30 +223,7 @@ def translate_to_level(qbf: QBF) -> SM64Level:
     # Each door gadget requires its own "area".
 
     ## Initialize doors
-    door_gadgets_literals: DefaultDict[int, List[DoorGadget]] = defaultdict(list)
-    choice_gadgets: List[ChoiceGadget] = []
-    for (literal_1, literal_2, literal_3) in qbf.formula.clauses:
-        # Create a door for each literal appearance
-        door_1 = DoorGadget(name=str(literal_1))
-        door_2 = DoorGadget(name=str(literal_2))
-        door_3 = DoorGadget(name=str(literal_3))
-        door_gadgets_literals[literal_1].append(door_1)
-        door_gadgets_literals[literal_2].append(door_2)
-        door_gadgets_literals[literal_3].append(door_3)
-
-        ChoiceGadget(
-            name="clause",
-            choices=[
-                (door_1, DoorEntrance.TRAVERSE),
-                (door_2, DoorEntrance.TRAVERSE),
-                (door_3, DoorEntrance.TRAVERSE),
-            ],
-        )
-
-        # Create a choice gadget for each clause
-        # (TODO)
-
-        # Hook them up (?) (TODO)
+    door_gadgets_literals = create_and_hook_up_doors_clauses(qbf.formula.clauses)
 
     for alternation in range(1, qbf.variables + 1):
         if alternation % 2 == 1:

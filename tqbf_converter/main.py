@@ -244,18 +244,11 @@ def create_and_hook_up_doors_clauses(
     return door_gadgets_literals, clause_choice
 
 
-def translate_to_level(qbf: QBF) -> SM64Level:
-    # There's 3 doors per clause; 1 per occurrence of a literal.
-    # There's 2 extra doors per existential quantifier gadget,
-    # and 4 extra doors per universal quantifier gadget.
-    # There's also "choice gadgets", one per quantifier gadget.
-    # Each door gadget requires its own "area".
-
-    ## Initialize doors
-    door_gadgets_literals, last_clause = create_and_hook_up_doors_clauses(
-        qbf.formula.clauses
-    )
-
+def create_and_hook_up_quantifiers(
+    variables: int,
+    door_gadgets_literals: DefaultDict[int, List[DoorGadget]],
+    last_clause: ChoiceGadget,
+) -> None:
     # To interleave existential and universal quantifiers:
     #  - Existential's (door_a, TRAVERSE) and (door_b, TRAVERSE) -->
     #      Universal's (door_d, CLOSE).
@@ -269,7 +262,7 @@ def translate_to_level(qbf: QBF) -> SM64Level:
     entrance: Union[ChoiceGadget, DoorPath]
     prev_existential: Optional[ExistentialGadget] = None
     prev_universal: Optional[UniversalGadget] = None
-    for alternation in range(1, qbf.variables + 1):
+    for alternation in range(1, variables + 1):
         if alternation % 2 == 1:
             ## Existential.
             curr_existential = create_and_hook_up_doors_existential(
@@ -279,6 +272,10 @@ def translate_to_level(qbf: QBF) -> SM64Level:
                 entrance = curr_existential.choice_gadget
                 prev_universal.door_a.path_exits[DoorEntrance.TRAVERSE] = entrance
                 prev_universal.door_a.path_exits[DoorEntrance.CLOSE] = entrance
+            else:
+                # This is the first existential gadget, which should be
+                # connected from the "start" gadget.
+                pass
             prev_existential = curr_existential
         else:
             ## Universal.
@@ -294,11 +291,32 @@ def translate_to_level(qbf: QBF) -> SM64Level:
                 curr_universal.door_d.path_exits[
                     DoorEntrance.TRAVERSE
                 ] = prev_universal.choice_gadget
+            else:
+                # This is the first universal gadget, which actually
+                # connects directly to the "end" gadget.
+                # (TODO)
+                pass
 
             prev_universal = curr_universal
 
     for door_path in last_clause.choices:
         door_path[0].path_exits[door_path[1]] = curr_universal.choice_gadget
+
+    # This is where I'd return a start gadget... IF I HAD ONE!!!
+    return None
+
+
+def translate_to_level(qbf: QBF) -> SM64Level:
+    # There's 3 doors per clause; 1 per occurrence of a literal.
+    # There's 2 extra doors per existential quantifier gadget,
+    # and 4 extra doors per universal quantifier gadget.
+    # There's also "choice gadgets", one per quantifier gadget.
+    # Each door gadget requires its own "area".
+
+    door_gadgets_literals, last_clause = create_and_hook_up_doors_clauses(
+        qbf.formula.clauses
+    )
+    create_and_hook_up_quantifiers(qbf.variables, door_gadgets_literals, last_clause)
 
     # Create areas
     door_gadgets: List[DoorGadget] = []

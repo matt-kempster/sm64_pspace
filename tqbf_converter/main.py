@@ -90,6 +90,14 @@ class DoorEntrance(Enum):
     TRAVERSE = auto()
     CLOSE = auto()
 
+    def __str__(self):
+        if self == self.OPEN:
+            return "+"
+        elif self == self.TRAVERSE:
+            return "~"
+        else:
+            return "-"
+
 
 @dataclass
 class DoorGadget:
@@ -98,14 +106,40 @@ class DoorGadget:
         DoorEntrance, Union["DoorPath", "ChoiceGadget", EndGadget]
     ] = field(default_factory=dict)
 
+    def __str__(self):
+        return self.name
+
 
 DoorPath = Tuple[DoorGadget, DoorEntrance]
+
+
+def path_to_str(door_path: DoorPath) -> str:
+    next_gadget = door_path[0].path_exits[door_path[1]]
+
+    path_str = f"{door_path[1]}{door_path[0]}"
+
+    if isinstance(next_gadget, ChoiceGadget):
+        temp = str(next_gadget)
+        temp = temp.replace("\n", "\n  ")
+        path_str += f" → {temp}"
+    elif isinstance(next_gadget, EndGadget):
+        path_str += "!"
+    else:
+        path_str += f" (→) {path_to_str(next_gadget)}"
+
+    return path_str
 
 
 @dataclass
 class ChoiceGadget:
     name: str
-    choices: List[Tuple[DoorGadget, DoorEntrance]] = field(default_factory=list)
+    choices: List[DoorPath] = field(default_factory=list)
+
+    def __str__(self):
+        # TODO: This chooses the second choice always. If we were to 
+        # print both, our recursion would print repetitively due to 
+        # converging paths. I don't know if this is a priority to fix.
+        return f"ChoiceGadget\n  [→] {path_to_str(self.choices[1])}"
 
 
 @dataclass
@@ -218,17 +252,18 @@ def create_and_hook_up_doors_universal(
 
 def create_and_hook_up_doors_clauses(
     clauses: Iterable[Clause],
-) -> Tuple[DefaultDict[int, List[DoorGadget]], ChoiceGadget]:
+) -> Tuple[DefaultDict[int, List[DoorGadget]], ChoiceGadget, ChoiceGadget]:
     """
-    Return two things:
+    Return three things:
       - A mapping from literals to a list of doors, one per literal instance.
+      - The ChoiceGadget for the first clause in the input.
       - The ChoiceGadget for the last clause in the input.
     """
     door_gadgets_literals: DefaultDict[int, List[DoorGadget]] = defaultdict(list)
     prev_door_1: Optional[DoorGadget] = None
     prev_door_2: Optional[DoorGadget] = None
     prev_door_3: Optional[DoorGadget] = None
-    for (literal_1, literal_2, literal_3) in clauses:
+    for i, (literal_1, literal_2, literal_3) in enumerate(clauses):
         # Create a door for each literal appearance
         door_1 = DoorGadget(name=str(literal_1))
         door_2 = DoorGadget(name=str(literal_2))
@@ -244,6 +279,8 @@ def create_and_hook_up_doors_clauses(
                 (door_3, DoorEntrance.TRAVERSE),
             ],
         )
+        if i == 0:
+            first_clause = clause_choice
         if prev_door_1 and prev_door_2 and prev_door_3:
             prev_door_1.path_exits[DoorEntrance.TRAVERSE] = clause_choice
             prev_door_2.path_exits[DoorEntrance.TRAVERSE] = clause_choice
@@ -251,17 +288,23 @@ def create_and_hook_up_doors_clauses(
         prev_door_1 = door_1
         prev_door_2 = door_2
         prev_door_3 = door_3
-    return door_gadgets_literals, clause_choice
+    return door_gadgets_literals, first_clause, clause_choice
 
 
 @dataclass
 class StartGadget:
     path_to: ChoiceGadget
 
+    def __str__(self):
+        path_str = str(self.path_to)
+        indented_path = path_str.replace("\n", "\n  ")
+        return f"StartGadget \n  → {indented_path}"
+
 
 def create_and_hook_up_quantifiers(
     variables: int,
     door_gadgets_literals: DefaultDict[int, List[DoorGadget]],
+    first_clause: ChoiceGadget,
     last_clause: ChoiceGadget,
 ) -> StartGadget:
 
@@ -274,7 +317,9 @@ def create_and_hook_up_quantifiers(
     #      Existential's ChoiceGadget.
     #
     # To interleave the clause gadgets with the quantifier gadgets:
-    #  - The last clause's three doors connect to the last Universal's ChoiceGadget.
+    #  - The LAST Universal's (door_a, TRAVERSE) and (door_a, CLOSE) -->
+    #      the LAST clause's ChoiceGadget.
+    #  - The FIRST clause's three doors connect to the LAST Universal's ChoiceGadget.
     #  - The (door_d, TRAVERSE) of one universal quantifier connects to the
     #      previous universal quantifier's ChoiceGadget.
     entrance: Union[ChoiceGadget, DoorPath]
@@ -319,7 +364,9 @@ def create_and_hook_up_quantifiers(
 
             prev_universal = curr_universal
 
-    for door_path in last_clause.choices:
+    curr_universal.door_a.path_exits[DoorEntrance.TRAVERSE] = last_clause
+    curr_universal.door_a.path_exits[DoorEntrance.CLOSE] = last_clause
+    for door_path in first_clause.choices:
         door_path[0].path_exits[door_path[1]] = curr_universal.choice_gadget
 
     if not start_gadget:
@@ -327,8 +374,8 @@ def create_and_hook_up_quantifiers(
     return start_gadget
 
 
-def validate_gadgets(start_gadget: StartGadget):
-    pass
+def print_gadgets(start_gadget: StartGadget):
+    print(start_gadget)
 
 
 def translate_to_level(qbf: QBF) -> SM64Level:
@@ -338,13 +385,13 @@ def translate_to_level(qbf: QBF) -> SM64Level:
     # There's also "choice gadgets", one per quantifier gadget.
     # Each door gadget requires its own "area".
 
-    door_gadgets_literals, last_clause = create_and_hook_up_doors_clauses(
+    door_gadgets_literals, first_clause, last_clause = create_and_hook_up_doors_clauses(
         qbf.formula.clauses
     )
     start_gadget = create_and_hook_up_quantifiers(
-        qbf.variables, door_gadgets_literals, last_clause
+        qbf.variables, door_gadgets_literals, first_clause, last_clause
     )
-    validate_gadgets(start_gadget)
+    print_gadgets(start_gadget)
 
     # Create areas
     door_gadgets: List[DoorGadget] = []

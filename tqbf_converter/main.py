@@ -191,8 +191,9 @@ def create_and_hook_up_doors_universal(
         last_door_path[0].path_exits[last_door_path[1]] = warp_target
         last_door_path = warp_target
 
-    # Then, hook to next quantifier...
-    # Then, come BACK from that quantifier via a choice gadget...
+    # Then, hook to next quantifier... (done in create_and_hook_up_quantifiers())
+
+    # Then, come BACK from that quantifier via the choice gadget...
     last_door_path = (door_b, DoorEntrance.OPEN)
     full_path = (
         [(door_b, DoorEntrance.TRAVERSE), (door_b, DoorEntrance.CLOSE)]
@@ -206,7 +207,11 @@ def create_and_hook_up_doors_universal(
             (door_a, DoorEntrance.CLOSE),
         ]
     )
-    # Then, hook to next quantifier again.
+    for warp_target in full_path:
+        last_door_path[0].path_exits[last_door_path[1]] = warp_target
+        last_door_path = warp_target
+
+    # Then, hook to next quantifier again. (done in create_and_hook_up_quantifiers())
 
     return UniversalGadget(door_a, door_b, door_c, door_d, choice_gadget)
 

@@ -89,9 +89,12 @@ class DoorEntrance(Enum):
 @dataclass
 class DoorGadget:
     name: str
-    path_exits: Dict[DoorEntrance, Union["DoorGadget", "ChoiceGadget"]] = field(
+    path_exits: Dict[DoorEntrance, Union["DoorPath", "ChoiceGadget"]] = field(
         default_factory=dict
     )
+
+
+DoorPath = Tuple[DoorGadget, DoorEntrance]
 
 
 @dataclass
@@ -100,9 +103,16 @@ class ChoiceGadget:
     choices: List[Tuple[DoorGadget, DoorEntrance]] = field(default_factory=list)
 
 
+@dataclass
+class ExistentialGadget:
+    door_a: DoorGadget
+    door_b: DoorGadget
+    choice_gadget: ChoiceGadget
+
+
 def create_and_hook_up_doors_existential(
     variable: int, door_gadgets_literals: Mapping[int, Iterable[DoorGadget]]
-) -> None:
+) -> ExistentialGadget:
 
     # Create doors.
     door_a = DoorGadget(name=f"existential_{variable}_a")
@@ -124,7 +134,7 @@ def create_and_hook_up_doors_existential(
         + [(door_a, DoorEntrance.OPEN), (door_a, DoorEntrance.TRAVERSE)]
     )
     for warp_target in full_path:
-        last_door_path[0].path_exits[last_door_path[1]] = warp_target[0]
+        last_door_path[0].path_exits[last_door_path[1]] = warp_target
         last_door_path = warp_target
 
     # Door A:
@@ -135,13 +145,24 @@ def create_and_hook_up_doors_existential(
         + [(door_b, DoorEntrance.OPEN), (door_b, DoorEntrance.TRAVERSE)]
     )
     for warp_target in full_path:
-        last_door_path[0].path_exits[last_door_path[1]] = warp_target[0]
+        last_door_path[0].path_exits[last_door_path[1]] = warp_target
         last_door_path = warp_target
+
+    return ExistentialGadget(door_a, door_b, choice_gadget)
+
+
+@dataclass
+class UniversalGadget:
+    door_a: DoorGadget
+    door_b: DoorGadget
+    door_c: DoorGadget
+    door_d: DoorGadget
+    choice_gadget: ChoiceGadget
 
 
 def create_and_hook_up_doors_universal(
     variable: int, door_gadgets_literals: Mapping[int, Iterable[DoorGadget]]
-) -> None:
+) -> UniversalGadget:
     # Create doors.
     door_a = DoorGadget(name=f"universal_{variable}_a")
     door_b = DoorGadget(name=f"universal_{variable}_b")
@@ -149,7 +170,10 @@ def create_and_hook_up_doors_universal(
     door_d = DoorGadget(name=f"universal_{variable}_d")
 
     # Create choice gadget.
-    # TODO
+    choice_gadget = ChoiceGadget(
+        name="universal",
+        choices=[(door_b, DoorEntrance.OPEN), (door_d, DoorEntrance.TRAVERSE)],
+    )
 
     # Hook doors to literal instance doors.
     last_door_path = (door_d, DoorEntrance.CLOSE)
@@ -159,7 +183,7 @@ def create_and_hook_up_doors_universal(
         + [(door_a, DoorEntrance.OPEN), (door_a, DoorEntrance.TRAVERSE)]
     )
     for warp_target in full_path:
-        last_door_path[0].path_exits[last_door_path[1]] = warp_target[0]
+        last_door_path[0].path_exits[last_door_path[1]] = warp_target
         last_door_path = warp_target
 
     # Then, hook to next quantifier...
@@ -179,11 +203,17 @@ def create_and_hook_up_doors_universal(
     )
     # Then, hook to next quantifier again.
 
+    return UniversalGadget(door_a, door_b, door_c, door_d, choice_gadget)
+
 
 def create_and_hook_up_doors_clauses(
     clauses: Iterable[Clause],
-) -> DefaultDict[int, List[DoorGadget]]:
-
+) -> Tuple[DefaultDict[int, List[DoorGadget]], ChoiceGadget]:
+    """
+    Return two things:
+      - A mapping from literals to a list of doors, one per literal instance.
+      - The ChoiceGadget for the last clause in the input.
+    """
     door_gadgets_literals: DefaultDict[int, List[DoorGadget]] = defaultdict(list)
     prev_door_1: Optional[DoorGadget] = None
     prev_door_2: Optional[DoorGadget] = None
@@ -211,8 +241,7 @@ def create_and_hook_up_doors_clauses(
         prev_door_1 = door_1
         prev_door_2 = door_2
         prev_door_3 = door_3
-        # Hook them up (?) (TODO)
-    return door_gadgets_literals
+    return door_gadgets_literals, clause_choice
 
 
 def translate_to_level(qbf: QBF) -> SM64Level:
@@ -223,15 +252,53 @@ def translate_to_level(qbf: QBF) -> SM64Level:
     # Each door gadget requires its own "area".
 
     ## Initialize doors
-    door_gadgets_literals = create_and_hook_up_doors_clauses(qbf.formula.clauses)
+    door_gadgets_literals, last_clause = create_and_hook_up_doors_clauses(
+        qbf.formula.clauses
+    )
 
+    # To interleave existential and universal quantifiers:
+    #  - Existential's (door_a, TRAVERSE) and (door_b, TRAVERSE) -->
+    #      Universal's (door_d, CLOSE).
+    #  - Universal's (door_a, TRAVERSE) and (door_a, CLOSE) -->
+    #      Existential's ChoiceGadget.
+    #
+    # To interleave the clause gadgets with the quantifier gadgets:
+    #  - The last clause's three doors connect to the last Universal's ChoiceGadget.
+    #  - The (door_d, TRAVERSE) of one universal quantifier connects to the
+    #      previous universal quantifier's ChoiceGadget.
+    entrance: Union[ChoiceGadget, DoorPath]
+    prev_existential: Optional[ExistentialGadget] = None
+    prev_universal: Optional[UniversalGadget] = None
     for alternation in range(1, qbf.variables + 1):
         if alternation % 2 == 1:
             ## Existential.
-            create_and_hook_up_doors_existential(alternation, door_gadgets_literals)
+            curr_existential = create_and_hook_up_doors_existential(
+                alternation, door_gadgets_literals
+            )
+            if prev_universal:
+                entrance = curr_existential.choice_gadget
+                prev_universal.door_a.path_exits[DoorEntrance.TRAVERSE] = entrance
+                prev_universal.door_a.path_exits[DoorEntrance.CLOSE] = entrance
+            prev_existential = curr_existential
         else:
             ## Universal.
-            create_and_hook_up_doors_universal(alternation, door_gadgets_literals)
+            curr_universal = create_and_hook_up_doors_universal(
+                alternation, door_gadgets_literals
+            )
+            if prev_existential:
+                entrance = (curr_universal.door_d, DoorEntrance.CLOSE)
+                prev_existential.door_a.path_exits[DoorEntrance.TRAVERSE] = entrance
+                prev_existential.door_b.path_exits[DoorEntrance.TRAVERSE] = entrance
+
+            if prev_universal:
+                curr_universal.door_d.path_exits[
+                    DoorEntrance.TRAVERSE
+                ] = prev_universal.choice_gadget
+
+            prev_universal = curr_universal
+
+    for door_path in last_clause.choices:
+        door_path[0].path_exits[door_path[1]] = curr_universal.choice_gadget
 
     # Create areas
     door_gadgets: List[DoorGadget] = []

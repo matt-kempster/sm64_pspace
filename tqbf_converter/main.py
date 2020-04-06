@@ -125,7 +125,7 @@ def path_to_str(door_path: DoorPath) -> str:
     elif isinstance(next_gadget, EndGadget):
         path_str += "!"
     else:
-        path_str += f" (→) {path_to_str(next_gadget)}"
+        path_str += f" → {path_to_str(next_gadget)}"
 
     return path_str
 
@@ -136,8 +136,8 @@ class ChoiceGadget:
     choices: List[DoorPath] = field(default_factory=list)
 
     def __str__(self):
-        # TODO: This chooses the second choice always. If we were to 
-        # print both, our recursion would print repetitively due to 
+        # TODO: This chooses the second choice always. If we were to
+        # print both, our recursion would print repetitively due to
         # converging paths. I don't know if this is a priority to fix.
         return f"ChoiceGadget\n  [→] {path_to_str(self.choices[1])}"
 
@@ -210,7 +210,7 @@ def create_and_hook_up_doors_universal(
 
     # Create choice gadget.
     choice_gadget = ChoiceGadget(
-        name="universal",
+        name=f"universal_{variable}",
         choices=[(door_b, DoorEntrance.OPEN), (door_d, DoorEntrance.TRAVERSE)],
     )
 
@@ -264,15 +264,26 @@ def create_and_hook_up_doors_clauses(
     prev_door_2: Optional[DoorGadget] = None
     prev_door_3: Optional[DoorGadget] = None
     for i, (literal_1, literal_2, literal_3) in enumerate(clauses):
+        appearances_1 = len(door_gadgets_literals[literal_1])
+        appearances_2 = len(door_gadgets_literals[literal_2]) + (
+            1 if literal_1 == literal_2 else 0
+        )
+        appearances_3 = len(door_gadgets_literals[literal_3]) + (
+            2
+            if literal_1 == literal_2 and literal_2 == literal_3
+            else 1
+            if literal_3 == literal_2 or literal_3 == literal_1
+            else 0
+        )
         # Create a door for each literal appearance
-        door_1 = DoorGadget(name=str(literal_1))
-        door_2 = DoorGadget(name=str(literal_2))
-        door_3 = DoorGadget(name=str(literal_3))
+        door_1 = DoorGadget(name=f"literal_{str(literal_1)}_{appearances_1}")
+        door_2 = DoorGadget(name=f"literal_{str(literal_2)}_{appearances_2}")
+        door_3 = DoorGadget(name=f"literal_{str(literal_3)}_{appearances_3}")
         door_gadgets_literals[literal_1].append(door_1)
         door_gadgets_literals[literal_2].append(door_2)
         door_gadgets_literals[literal_3].append(door_3)
         clause_choice = ChoiceGadget(
-            name="clause",
+            name=f"clause{(literal_1, literal_2, literal_3)}",
             choices=[
                 (door_1, DoorEntrance.TRAVERSE),
                 (door_2, DoorEntrance.TRAVERSE),
@@ -288,6 +299,7 @@ def create_and_hook_up_doors_clauses(
         prev_door_1 = door_1
         prev_door_2 = door_2
         prev_door_3 = door_3
+
     return door_gadgets_literals, first_clause, clause_choice
 
 
@@ -318,8 +330,8 @@ def create_and_hook_up_quantifiers(
     #
     # To interleave the clause gadgets with the quantifier gadgets:
     #  - The LAST Universal's (door_a, TRAVERSE) and (door_a, CLOSE) -->
-    #      the LAST clause's ChoiceGadget.
-    #  - The FIRST clause's three doors connect to the LAST Universal's ChoiceGadget.
+    #      the FIRST clause's ChoiceGadget.
+    #  - The LAST clause's three doors connect to the LAST Universal's ChoiceGadget.
     #  - The (door_d, TRAVERSE) of one universal quantifier connects to the
     #      previous universal quantifier's ChoiceGadget.
     entrance: Union[ChoiceGadget, DoorPath]
@@ -364,9 +376,9 @@ def create_and_hook_up_quantifiers(
 
             prev_universal = curr_universal
 
-    curr_universal.door_a.path_exits[DoorEntrance.TRAVERSE] = last_clause
-    curr_universal.door_a.path_exits[DoorEntrance.CLOSE] = last_clause
-    for door_path in first_clause.choices:
+    curr_universal.door_a.path_exits[DoorEntrance.TRAVERSE] = first_clause
+    curr_universal.door_a.path_exits[DoorEntrance.CLOSE] = first_clause
+    for door_path in last_clause.choices:
         door_path[0].path_exits[door_path[1]] = curr_universal.choice_gadget
 
     if not start_gadget:

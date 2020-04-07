@@ -1,10 +1,32 @@
 #! /usr/bin/env python3.8
+from __future__ import annotations
+
 from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import DefaultDict, Dict, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import (
+    ClassVar,
+    DefaultDict,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+)
 
 from parse_qbf import Clause
+
+
+@dataclass
+class StartGadget:
+    path_to: ChoiceGadget
+
+    def __str__(self):
+        path_str = str(self.path_to)
+        indented_path = path_str.replace("\n", "\n  ")
+        return f"StartGadget \n  → {indented_path}"
 
 
 @dataclass
@@ -29,9 +51,18 @@ class DoorEntrance(Enum):
 @dataclass
 class DoorGadget:
     name: str
-    path_exits: Dict[
-        DoorEntrance, Union["DoorPath", "ChoiceGadget", EndGadget]
-    ] = field(default_factory=dict)
+    path_exits: Dict[DoorEntrance, Union[DoorPath, ChoiceGadget, EndGadget]] = field(
+        default_factory=dict
+    )
+
+    instances: ClassVar[List[DoorGadget]] = []
+
+    def __post_init__(self):
+        DoorGadget.instances.append(self)
+
+    @classmethod
+    def get_instances(cls) -> List[DoorGadget]:
+        return DoorGadget.instances
 
     def __str__(self):
         return self.name
@@ -224,16 +255,6 @@ def create_and_hook_up_doors_clauses(
     return door_gadgets_literals, first_clause, clause_choice
 
 
-@dataclass
-class StartGadget:
-    path_to: ChoiceGadget
-
-    def __str__(self):
-        path_str = str(self.path_to)
-        indented_path = path_str.replace("\n", "\n  ")
-        return f"StartGadget \n  → {indented_path}"
-
-
 def create_and_hook_up_quantifiers(
     variables: int,
     door_gadgets_literals: DefaultDict[int, List[DoorGadget]],
@@ -305,7 +326,3 @@ def create_and_hook_up_quantifiers(
     if not start_gadget:
         raise RuntimeError("Start gadget never initialized - cannot proceed.")
     return start_gadget
-
-
-def print_gadgets(start_gadget: StartGadget):
-    print(start_gadget)

@@ -1,38 +1,24 @@
 #! /usr/bin/env python3.8
 import argparse
-from typing import List
 
 from gadgets import (
-    DoorGadget,
     create_and_hook_up_doors_clauses,
     create_and_hook_up_quantifiers,
-    print_gadgets,
 )
+from level import SM64Level, gadgets_to_level
 from parse_qbf import QBF, get_3cnf_from_formula, verify_formula
-from sm64_levels import Area, SM64Level
 
 
 def translate_to_level(qbf: QBF) -> SM64Level:
-    # There's 3 doors per clause; 1 per occurrence of a literal.
-    # There's 2 extra doors per existential quantifier gadget,
-    # and 4 extra doors per universal quantifier gadget.
-    # There's also "choice gadgets", one per quantifier gadget.
-    # Each door gadget requires its own "area".
-
     door_gadgets_literals, first_clause, last_clause = create_and_hook_up_doors_clauses(
         qbf.formula.clauses
     )
     start_gadget = create_and_hook_up_quantifiers(
         qbf.variables, door_gadgets_literals, first_clause, last_clause
     )
-    print_gadgets(start_gadget)
+    print(start_gadget)
 
-    # Create areas
-    door_gadgets: List[DoorGadget] = []
-    areas = [Area() for door in door_gadgets]  # probably more; lower bound
-
-    # Create the level
-    return SM64Level(areas=areas)
+    return gadgets_to_level(start_gadget)
 
 
 if __name__ == "__main__":

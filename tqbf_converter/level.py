@@ -1,9 +1,9 @@
 #! /usr/bin/env python3.8
 
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Tuple
 
-from gadgets import StartGadget
+from gadgets import DoorGadget, StartGadget
 
 
 @dataclass
@@ -30,6 +30,45 @@ class SM64Level:
     script_inc_c: str = ""
 
 
+@dataclass
+class DoorInLevel:
+    # The center position of the center platform of the door.
+    position: Tuple[int, int, int]
+    # Each platform is a square with side length equal to this times 2.
+    platform_half_side_length: int = 213
+    # The three platforms are collinear. This is the gap between adjacent platforms.
+    gap_size_between_platforms: int = 682
+    # Self explanatory.
+    height_difference_between_platforms: int = 450
+
+    def write_collision_verts(self) -> List[str]:
+        verts: List[str] = []
+
+        centers: List[Tuple[int, int, int]] = [
+            self.position,
+            (
+                self.position[0] + self.gap_size_between_platforms,
+                self.position[1] + self.height_difference_between_platforms,
+                self.position[2],
+            ),
+            (
+                self.position[0] - self.gap_size_between_platforms,
+                self.position[1] - self.height_difference_between_platforms,
+                self.position[2],
+            ),
+        ]
+        radius = self.platform_half_side_length
+        for (center_x, center_y, center_z) in centers:
+            platform_verts = [
+                f"COL_VERTEX({center_x - radius}, {center_y}, {center_z + radius})",
+                f"COL_VERTEX({center_x + radius}, {center_y}, {center_z + radius})",
+                f"COL_VERTEX({center_x + radius}, {center_y}, {center_z - radius})",
+                f"COL_VERTEX({center_x - radius}, {center_y}, {center_z - radius})",
+            ]
+            verts += platform_verts
+        return verts
+
+
 def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
     # Rough strategy:
     #  - Every door has its own area so it can have its own water level.
@@ -44,4 +83,8 @@ def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
     #    number of warps. (All choice gadgets here have fan-out 2 or 3.)
     #  - The StartGadget is where Mario starts when he begins the level.
     #  - The EndGadget contains a star.
-    pass
+    print("List of doors")
+    for door in DoorGadget.get_instances():
+        print(door.name)
+
+    return SM64Level()

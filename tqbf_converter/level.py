@@ -59,13 +59,12 @@ class DoorInLevel:
         ]
         radius = self.platform_half_side_length
         for (center_x, center_y, center_z) in centers:
-            platform_verts = [
+            verts += [
                 f"COL_VERTEX({center_x - radius}, {center_y}, {center_z + radius})",
                 f"COL_VERTEX({center_x + radius}, {center_y}, {center_z + radius})",
                 f"COL_VERTEX({center_x + radius}, {center_y}, {center_z - radius})",
                 f"COL_VERTEX({center_x - radius}, {center_y}, {center_z - radius})",
             ]
-            verts += platform_verts
         return verts
 
 

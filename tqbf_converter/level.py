@@ -35,31 +35,47 @@ class SM64Level:
 @dataclass
 class DoorInLevel:
     # The center position of the center platform of the door.
-    position: Tuple[int, int, int]
+    position_traverse: Tuple[int, int, int]
+    position_open: Tuple[int, int, int] = field(init=False)
+    position_close: Tuple[int, int, int] = field(init=False)
+
     # Each platform is a square with side length equal to this times 2.
     platform_half_side_length: int = 213
     # The three platforms are collinear. This is the gap between adjacent platforms.
     gap_size_between_platforms: int = 682
-    # Self explanatory.
+
     height_difference_between_platforms: int = 450
+    initial_water_level_distance_below_platform: int = -100
+
+    def __post_init__(self):
+        self.position_close = (
+            self.position_traverse[0] + self.gap_size_between_platforms,
+            self.position_traverse[1] + self.height_difference_between_platforms,
+            self.position_traverse[2],
+        )
+
+        self.position_open = (
+            self.position_traverse[0] - self.gap_size_between_platforms,
+            self.position_traverse[1] - self.height_difference_between_platforms,
+            self.position_traverse[2],
+        )
+
+    def get_named_centers(self) -> List[Tuple[str, int, int, int]]:
+        names = {
+            "Traverse": self.position_traverse,
+            "Open": self.position_open,
+            "Close": self.position_close,
+        }
+        return [
+            (platform_name, center_x, center_y, center_z)
+            for platform_name, (center_x, center_y, center_z) in names.items()
+        ]
 
     def get_collision_verts(self) -> List[Tuple[int, int, int]]:
         verts: List[Tuple[int, int, int]] = []
 
-        centers: List[Tuple[int, int, int]] = [
-            self.position,
-            (
-                self.position[0] + self.gap_size_between_platforms,
-                self.position[1] + self.height_difference_between_platforms,
-                self.position[2],
-            ),
-            (
-                self.position[0] - self.gap_size_between_platforms,
-                self.position[1] - self.height_difference_between_platforms,
-                self.position[2],
-            ),
-        ]
         radius = self.platform_half_side_length
+        centers = [self.position_traverse, self.position_open, self.position_close]
         for (center_x, center_y, center_z) in centers:
             verts += [
                 (center_x - radius, center_y, center_z + radius),
@@ -89,9 +105,14 @@ def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
     template_dir = Path(__file__).parent / "templates"
     loader = jinja2.FileSystemLoader(str(template_dir))
     env = jinja2.Environment(loader=loader)
-    template = env.get_template("collision.inc.c.j2")
+
+    collision_template = env.get_template("collision.inc.c.j2")
     verts = DoorInLevel((0, 0, 0)).get_collision_verts()
-    print(template.render(area_num=1, verts=verts))
+    print(collision_template.render(area_num=1, verts=verts))
+
+    geo_template = env.get_template("geo.inc.c.j2")
+    centers = DoorInLevel((0, 0, 0)).get_named_centers()
+    print(geo_template.render(area_num=1, centers=centers))
 
     for door in DoorGadget.get_instances():
         print(door.name)

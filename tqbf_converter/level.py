@@ -26,6 +26,15 @@ class SM64Level:
 
 
 @dataclass
+class WaterBox:
+    x1: int
+    z1: int
+    x2: int
+    z2: int
+    y: int
+
+
+@dataclass
 class DoorInLevel:
     # The center position of the center platform of the door.
     position_traverse: Tuple[int, int, int]
@@ -55,7 +64,7 @@ class DoorInLevel:
             self.position_traverse[1] - self.height_difference_between_platforms,
             self.position_traverse[2],
         )
-        
+
         self.diamond_positions: List[Tuple[int, int, int]] = []
         for (x, y, z) in [self.position_close, self.position_open]:
             self.diamond_positions.append(
@@ -87,13 +96,13 @@ class DoorInLevel:
             ]
         return verts
 
-    def get_water_box_definition(self) -> Tuple[int, int, int, int, int]:
+    def get_water_box_definition(self) -> WaterBox:
         radius = self.platform_half_side_length
-        return (
-            self.position_open[0] - radius,  # x1
-            self.position_open[2] - radius,  # z1
-            self.position_close[0] + radius,  # x2
-            self.position_close[2] + radius,  # z2
+        return WaterBox(
+            self.position_open[0] - radius,
+            self.position_open[2] - radius,
+            self.position_close[0] + radius,
+            self.position_close[2] + radius,
             self.position_open[1] - self.initial_water_level_distance_below_platform,
         )
 
@@ -135,17 +144,7 @@ def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
     collision_template = env.get_template("collision.inc.c.j2")
     verts = door.get_collision_verts()
     water = door.get_water_box_definition()
-    print(
-        collision_template.render(
-            area_num=1,
-            verts=verts,
-            water_x1=water[0],
-            water_z1=water[1],
-            water_x2=water[2],
-            water_z2=water[3],
-            water_y=water[4],
-        )
-    )
+    print(collision_template.render(area_num=1, verts=verts, water=water))
 
     geo_template = env.get_template("geo.inc.c.j2")
     centers = door.get_named_centers()

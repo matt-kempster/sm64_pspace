@@ -146,6 +146,9 @@ def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
     water = door.get_water_box_definition()
     print(collision_template.render(area_num=1, verts=verts, water=water))
 
+    movtext_template = env.get_template("movtext.inc.c.j2")
+    print(movtext_template.render(water=water))
+
     geo_template = env.get_template("geo.inc.c.j2")
     centers = door.get_named_centers()
     print(geo_template.render(area_num=1, centers=centers))

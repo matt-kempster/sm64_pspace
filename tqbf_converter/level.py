@@ -154,6 +154,14 @@ def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
     areas = [Area(num=1, door=door)]
     print(script_template.render(areas=areas))
 
+    model_template = env.get_template("model.inc.c.j2")
+    platform_names = ["Open", "Traverse", "Close"]
+    print(
+        model_template.render(
+            platform_names=platform_names, radius=door.platform_half_side_length
+        )
+    )
+
     for door2 in DoorGadget.get_instances():
         print(door2.name)
 

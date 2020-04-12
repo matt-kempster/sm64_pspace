@@ -1,4 +1,5 @@
 #! /usr/bin/env python3.8
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -16,14 +17,6 @@ class Collision:
 
 
 @dataclass
-class Area:
-    collision_inc_c: Collision = Collision()
-    geo_inc_c: str = ""
-    macro_inc_c: str = ""  # mostly empty
-    movtext_inc_c: str = ""
-
-
-@dataclass
 class SM64Level:
     areas: List[Area] = field(default_factory=list)
     geo_inc_c: str = ""
@@ -38,6 +31,9 @@ class DoorInLevel:
     position_traverse: Tuple[int, int, int]
     position_open: Tuple[int, int, int] = field(init=False)
     position_close: Tuple[int, int, int] = field(init=False)
+
+    diamond_positions: List[Tuple[int, int, int]] = field(init=False)
+    diamond_height_above_platform: int = 15
 
     # Each platform is a square with side length equal to this times 2.
     platform_half_side_length: int = 213
@@ -59,6 +55,12 @@ class DoorInLevel:
             self.position_traverse[1] - self.height_difference_between_platforms,
             self.position_traverse[2],
         )
+        
+        self.diamond_positions: List[Tuple[int, int, int]] = []
+        for (x, y, z) in [self.position_close, self.position_open]:
+            self.diamond_positions.append(
+                (x, y + self.diamond_height_above_platform, z)
+            )
 
     def get_named_centers(self) -> List[Tuple[str, int, int, int]]:
         names = {
@@ -94,6 +96,18 @@ class DoorInLevel:
             self.position_close[2] + radius,  # z2
             self.position_open[1] - self.initial_water_level_distance_below_platform,
         )
+
+
+@dataclass
+class Area:
+    num: int
+    door: DoorInLevel
+
+    # Old definition, might be resurrected in parts:
+    # collision_inc_c: Collision = Collision()
+    # geo_inc_c: str = ""
+    # macro_inc_c: str = ""  # mostly empty
+    # movtext_inc_c: str = ""
 
 
 def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
@@ -136,6 +150,10 @@ def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
     geo_template = env.get_template("geo.inc.c.j2")
     centers = door.get_named_centers()
     print(geo_template.render(area_num=1, centers=centers))
+
+    script_template = env.get_template("script.inc.c.j2")
+    areas = [Area(num=1, door=door)]
+    print(script_template.render(areas=areas))
 
     for door2 in DoorGadget.get_instances():
         print(door2.name)

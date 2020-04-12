@@ -1,0 +1,15 @@
+    LOAD_MIO0(        /*seg*/ 0x07, _wdw_segment_7SegmentRomStart, _wdw_segment_7SegmentRomEnd),
+    LOAD_MODEL_FROM_GEO(MODEL_WDW_WATER_LEVEL_DIAMOND,           water_level_dimond_geo),
+{%- for area in areas %}
+    AREA({{ area.num }}, castle_grounds_area_{{ area.num }}_level),
+        OBJECT(/*model*/ MODEL_NONE, /*pos*/     0,    0,     0, /*angle*/ 0,   0, 0, /*behParam*/ 0x00000000, /*beh*/ bhvInitializeChangingWaterLevel),
+    {%- for (diamond_x, diamond_y, diamond_z) in area.door.diamond_positions %}
+        OBJECT(0x38, {{ diamond_x }}, {{ diamond_y }}, {{ diamond_z }}, 0, 0, 0, 0, bhvWaterLevelDiamond),
+    {%- endfor %}
+        TERRAIN(castle_grounds_area_{{ area.num }}_collision),
+        // MACRO_OBJECTS(castle_grounds_area_{{ area.num }}_Area_macro_objs),
+        SET_BACKGROUND_MUSIC(0x00, SEQ_LEVEL_GRASS),
+        TERRAIN_TYPE(TERRAIN_GRASS),
+    END_AREA(),
+{%- endfor %}
+

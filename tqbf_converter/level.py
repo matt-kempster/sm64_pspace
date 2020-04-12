@@ -1,8 +1,10 @@
 #! /usr/bin/env python3.8
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import List, Tuple
 
+import jinja2
 from gadgets import DoorGadget, StartGadget
 
 
@@ -41,8 +43,8 @@ class DoorInLevel:
     # Self explanatory.
     height_difference_between_platforms: int = 450
 
-    def write_collision_verts(self) -> List[str]:
-        verts: List[str] = []
+    def get_collision_verts(self) -> List[Tuple[int, int, int]]:
+        verts: List[Tuple[int, int, int]] = []
 
         centers: List[Tuple[int, int, int]] = [
             self.position,
@@ -60,10 +62,10 @@ class DoorInLevel:
         radius = self.platform_half_side_length
         for (center_x, center_y, center_z) in centers:
             verts += [
-                f"COL_VERTEX({center_x - radius}, {center_y}, {center_z + radius})",
-                f"COL_VERTEX({center_x + radius}, {center_y}, {center_z + radius})",
-                f"COL_VERTEX({center_x + radius}, {center_y}, {center_z - radius})",
-                f"COL_VERTEX({center_x - radius}, {center_y}, {center_z - radius})",
+                (center_x - radius, center_y, center_z + radius),
+                (center_x + radius, center_y, center_z + radius),
+                (center_x + radius, center_y, center_z - radius),
+                (center_x - radius, center_y, center_z - radius),
             ]
         return verts
 
@@ -83,6 +85,14 @@ def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
     #  - The StartGadget is where Mario starts when he begins the level.
     #  - The EndGadget contains a star.
     print("List of doors")
+
+    template_dir = Path(__file__).parent / "templates"
+    loader = jinja2.FileSystemLoader(str(template_dir))
+    env = jinja2.Environment(loader=loader)
+    template = env.get_template("collision.inc.c.j2")
+    verts = DoorInLevel((0, 0, 0)).get_collision_verts()
+    print(template.render(area_num=1, verts=verts))
+
     for door in DoorGadget.get_instances():
         print(door.name)
 

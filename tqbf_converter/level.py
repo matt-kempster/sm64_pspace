@@ -85,6 +85,16 @@ class DoorInLevel:
             ]
         return verts
 
+    def get_water_box_definition(self) -> Tuple[int, int, int, int, int]:
+        radius = self.platform_half_side_length
+        return (
+            self.position_open[0] - radius,  # x1
+            self.position_open[2] - radius,  # z1
+            self.position_close[0] + radius,  # x2
+            self.position_close[2] + radius,  # z2
+            self.position_open[1] - self.initial_water_level_distance_below_platform,
+        )
+
 
 def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
     # Rough strategy:
@@ -106,15 +116,28 @@ def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
     loader = jinja2.FileSystemLoader(str(template_dir))
     env = jinja2.Environment(loader=loader)
 
+    door = DoorInLevel((0, 0, 0))
+
     collision_template = env.get_template("collision.inc.c.j2")
-    verts = DoorInLevel((0, 0, 0)).get_collision_verts()
-    print(collision_template.render(area_num=1, verts=verts))
+    verts = door.get_collision_verts()
+    water = door.get_water_box_definition()
+    print(
+        collision_template.render(
+            area_num=1,
+            verts=verts,
+            water_x1=water[0],
+            water_z1=water[1],
+            water_x2=water[2],
+            water_z2=water[3],
+            water_y=water[4],
+        )
+    )
 
     geo_template = env.get_template("geo.inc.c.j2")
-    centers = DoorInLevel((0, 0, 0)).get_named_centers()
+    centers = door.get_named_centers()
     print(geo_template.render(area_num=1, centers=centers))
 
-    for door in DoorGadget.get_instances():
-        print(door.name)
+    for door2 in DoorGadget.get_instances():
+        print(door2.name)
 
     return SM64Level()

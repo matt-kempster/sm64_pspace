@@ -1,8 +1,8 @@
 const Collision castle_grounds_area_{{ area_num }}_collision[] = {
     COL_INIT(),
     COL_VERTEX_INIT(12),
-{%- for vert_x, vert_y, vert_z in verts %}
-    COL_VERTEX({{ vert_x }}, {{ vert_y }}, {{ vert_z }}),
+{%- for vert in verts %}
+    COL_VERTEX({{ vert.x }}, {{ vert.y }}, {{ vert.z }}),
 {%- endfor %}
     COL_TRI_INIT(SURFACE_DEFAULT, 6),
     COL_TRI(0, 1, 2),

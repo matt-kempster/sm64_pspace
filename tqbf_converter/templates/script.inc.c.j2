@@ -3,8 +3,8 @@
 {%- for area in areas %}
     AREA({{ area.num }}, castle_grounds_area_{{ area.num }}_level),
         OBJECT(/*model*/ MODEL_NONE, /*pos*/     0,    0,     0, /*angle*/ 0,   0, 0, /*behParam*/ 0x00000000, /*beh*/ bhvInitializeChangingWaterLevel),
-    {%- for (diamond_x, diamond_y, diamond_z) in area.door.diamond_positions %}
-        OBJECT(0x38, {{ diamond_x }}, {{ diamond_y }}, {{ diamond_z }}, 0, 0, 0, 0, bhvWaterLevelDiamond),
+    {%- for diamond in area.door.diamond_positions %}
+        OBJECT(0x38, {{ diamond.x }}, {{ diamond.y }}, {{ diamond.z }}, 0, 0, 0, 0, bhvWaterLevelDiamond),
     {%- endfor %}
         TERRAIN(castle_grounds_area_{{ area.num }}_collision),
         // MACRO_OBJECTS(castle_grounds_area_{{ area.num }}_Area_macro_objs),

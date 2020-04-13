@@ -5,8 +5,8 @@ const GeoLayout castle_grounds_area_{{ area_num }}_Level[] = {
         GEO_OPEN_NODE(),
             GEO_ANIMATED_PART(1, 0, 0, 0, NULL),
             GEO_OPEN_NODE(),
-            {%- for platform_name, center_x, center_y, center_z in centers %}
-                GEO_ANIMATED_PART(1, {{ center_x }}, {{ center_y }}, {{ center_z }}, castle_grounds_{{ platform_name }}_mesh),
+            {%- for platform_name, center in centers %}
+                GEO_ANIMATED_PART(1, {{ center.x }}, {{ center.y }}, {{ center.z }}, castle_grounds_{{ platform_name }}_mesh),
             {%- endfor %}
             GEO_CLOSE_NODE(),
         GEO_CLOSE_NODE(),

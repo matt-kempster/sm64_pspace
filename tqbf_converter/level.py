@@ -10,6 +10,13 @@ from gadgets import DoorGadget, StartGadget
 
 
 @dataclass
+class Point3D:
+    x: int
+    y: int
+    z: int
+
+
+@dataclass
 class Collision:
     vertices: List[str] = field(default_factory=list)
     tris: List[str] = field(default_factory=list)
@@ -37,11 +44,11 @@ class WaterBox:
 @dataclass
 class DoorInLevel:
     # The center position of the center platform of the door.
-    position_traverse: Tuple[int, int, int]
-    position_open: Tuple[int, int, int] = field(init=False)
-    position_close: Tuple[int, int, int] = field(init=False)
+    position_traverse: Point3D
+    position_open: Point3D = field(init=False)
+    position_close: Point3D = field(init=False)
 
-    diamond_positions: List[Tuple[int, int, int]] = field(init=False)
+    diamond_positions: List[Point3D] = field(init=False)
     diamond_height_above_platform: int = 15
 
     # Each platform is a square with side length equal to this times 2.
@@ -53,57 +60,54 @@ class DoorInLevel:
     initial_water_level_distance_below_platform: int = -100
 
     def __post_init__(self):
-        self.position_close = (
-            self.position_traverse[0] + self.gap_size_between_platforms,
-            self.position_traverse[1] + self.height_difference_between_platforms,
-            self.position_traverse[2],
+        self.position_close = Point3D(
+            self.position_traverse.x + self.gap_size_between_platforms,
+            self.position_traverse.y + self.height_difference_between_platforms,
+            self.position_traverse.z,
         )
 
-        self.position_open = (
-            self.position_traverse[0] - self.gap_size_between_platforms,
-            self.position_traverse[1] - self.height_difference_between_platforms,
-            self.position_traverse[2],
+        self.position_open = Point3D(
+            self.position_traverse.x - self.gap_size_between_platforms,
+            self.position_traverse.y - self.height_difference_between_platforms,
+            self.position_traverse.z,
         )
 
-        self.diamond_positions: List[Tuple[int, int, int]] = []
-        for (x, y, z) in [self.position_close, self.position_open]:
+        self.diamond_positions: List[Point3D] = []
+        for point in [self.position_close, self.position_open]:
             self.diamond_positions.append(
-                (x, y + self.diamond_height_above_platform, z)
+                Point3D(point.x, point.y + self.diamond_height_above_platform, point.z)
             )
 
-    def get_named_centers(self) -> List[Tuple[str, int, int, int]]:
+    def get_named_centers(self) -> List[Tuple[str, Point3D]]:
         names = {
             "Traverse": self.position_traverse,
             "Open": self.position_open,
             "Close": self.position_close,
         }
-        return [
-            (platform_name, center_x, center_y, center_z)
-            for platform_name, (center_x, center_y, center_z) in names.items()
-        ]
+        return [(platform_name, point) for platform_name, point in names.items()]
 
-    def get_collision_verts(self) -> List[Tuple[int, int, int]]:
-        verts: List[Tuple[int, int, int]] = []
+    def get_collision_verts(self) -> List[Point3D]:
+        verts: List[Point3D] = []
 
         radius = self.platform_half_side_length
         centers = [self.position_traverse, self.position_open, self.position_close]
-        for (center_x, center_y, center_z) in centers:
+        for center in centers:
             verts += [
-                (center_x - radius, center_y, center_z + radius),
-                (center_x + radius, center_y, center_z + radius),
-                (center_x + radius, center_y, center_z - radius),
-                (center_x - radius, center_y, center_z - radius),
+                Point3D(center.x - radius, center.y, center.z + radius),
+                Point3D(center.x + radius, center.y, center.z + radius),
+                Point3D(center.x + radius, center.y, center.z - radius),
+                Point3D(center.x - radius, center.y, center.z - radius),
             ]
         return verts
 
     def get_water_box_definition(self) -> WaterBox:
         radius = self.platform_half_side_length
         return WaterBox(
-            self.position_open[0] - radius,
-            self.position_open[2] - radius,
-            self.position_close[0] + radius,
-            self.position_close[2] + radius,
-            self.position_open[1] - self.initial_water_level_distance_below_platform,
+            self.position_open.x - radius,
+            self.position_open.z - radius,
+            self.position_close.x + radius,
+            self.position_close.z + radius,
+            self.position_open.y - self.initial_water_level_distance_below_platform,
         )
 
 
@@ -112,16 +116,10 @@ class Area:
     num: int
     door: DoorInLevel
 
-    # Old definition, might be resurrected in parts:
-    # collision_inc_c: Collision = Collision()
-    # geo_inc_c: str = ""
-    # macro_inc_c: str = ""  # mostly empty
-    # movtext_inc_c: str = ""
-
 
 class LevelTemplateEnvironment(jinja2.Environment):
     def render_collision(
-        self, area_num: int, verts: List[Tuple[int, int, int]], water: WaterBox
+        self, area_num: int, verts: List[Point3D], water: WaterBox
     ) -> Text:
         collision_template = self.get_template("collision.inc.c.j2")
         return collision_template.render(area_num=area_num, verts=verts, water=water)
@@ -130,7 +128,7 @@ class LevelTemplateEnvironment(jinja2.Environment):
         movtext_template = self.get_template("movtext.inc.c.j2")
         return movtext_template.render(water=water)
 
-    def render_geo(self, area_num: int, centers: List[Tuple[str, int, int, int]]):
+    def render_geo(self, area_num: int, centers: List[Tuple[str, Point3D]]):
         geo_template = self.get_template("geo.inc.c.j2")
         return geo_template.render(area_num=area_num, centers=centers)
 
@@ -168,7 +166,7 @@ def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
     template_dir = Path(__file__).parent / "templates"
     env = get_template_environment(template_dir)
 
-    areas = [Area(num=1, door=DoorInLevel((0, 0, 0)))]
+    areas = [Area(num=1, door=DoorInLevel(Point3D(0, 0, 0)))]
     print(env.render_script(areas=areas))
 
     for area in areas:

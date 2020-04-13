@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Text, Tuple
+from typing import List, Tuple
 
 import jinja2
 from gadgets import DoorGadget, StartGadget
@@ -14,22 +14,6 @@ class Point3D:
     x: int
     y: int
     z: int
-
-
-@dataclass
-class Collision:
-    vertices: List[str] = field(default_factory=list)
-    tris: List[str] = field(default_factory=list)
-    water_boxes: List[str] = field(default_factory=list)
-
-
-@dataclass
-class SM64Level:
-    areas: List[Area] = field(default_factory=list)
-    geo_inc_c: str = ""
-    leveldata_inc_c: str = ""
-    model_inc_c: str = ""
-    script_inc_c: str = ""
 
 
 @dataclass
@@ -120,29 +104,38 @@ class Area:
 class LevelTemplateEnvironment(jinja2.Environment):
     def render_collision(
         self, area_num: int, verts: List[Point3D], water: WaterBox
-    ) -> Text:
+    ) -> str:
         collision_template = self.get_template("collision.inc.c.j2")
         return collision_template.render(area_num=area_num, verts=verts, water=water)
 
-    def render_movtext(self, water: WaterBox):
+    def render_movtext(self, water: WaterBox) -> str:
         movtext_template = self.get_template("movtext.inc.c.j2")
         return movtext_template.render(water=water)
 
-    def render_geo(self, area_num: int, centers: List[Tuple[str, Point3D]]):
+    def render_geo(self, area_num: int, centers: List[Tuple[str, Point3D]]) -> str:
         geo_template = self.get_template("geo.inc.c.j2")
         return geo_template.render(area_num=area_num, centers=centers)
 
-    def render_script(self, areas: List[Area]):
+    def render_script(self, areas: List[Area]) -> str:
         script_template = self.get_template("script.inc.c.j2")
         return script_template.render(areas=areas)
 
-    def render_model(self, platform_names: List[str], radius: int):
+    def render_model(self, platform_names: List[str], radius: int) -> str:
         model_template = self.get_template("model.inc.c.j2")
         return model_template.render(platform_names=platform_names, radius=radius)
 
 
 def get_template_environment(template_dir: Path) -> LevelTemplateEnvironment:
     return LevelTemplateEnvironment(loader=jinja2.FileSystemLoader(str(template_dir)))
+
+
+@dataclass
+class SM64Level:
+    areas: List[Area] = field(default_factory=list)
+    geo_inc_c: str = ""
+    leveldata_inc_c: str = ""
+    model_inc_c: str = ""
+    script_inc_c: str = ""
 
 
 def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
@@ -167,7 +160,7 @@ def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
     env = get_template_environment(template_dir)
 
     areas = [Area(num=1, door=DoorInLevel(Point3D(0, 0, 0)))]
-    print(env.render_script(areas=areas))
+    script = env.render_script(areas=areas)
 
     for area in areas:
         door = area.door
@@ -177,9 +170,17 @@ def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
         radius = door.platform_half_side_length
         platform_names = ["Open", "Traverse", "Close"]
 
-        print(env.render_collision(area.num, verts, water))
-        print(env.render_movtext(water))
-        print(env.render_geo(area.num, centers))
-        print(env.render_model(platform_names, radius))
+        collision = env.render_collision(area.num, verts, water)
+        movtext = env.render_movtext(water)
+        geo = env.render_geo(area.num, centers)
+        model = env.render_model(platform_names, radius)
+
+    output_dir = template_dir.parent / "output"
+    output_dir.mkdir(exist_ok=True)
+    (output_dir / "script.inc.c").write_text(script)
+    (output_dir / "collision.inc.c").write_text(collision)
+    (output_dir / "movtext.inc.c").write_text(movtext)
+    (output_dir / "geo.inc.c").write_text(geo)
+    (output_dir / "model.inc.c").write_text(model)
 
     return SM64Level()

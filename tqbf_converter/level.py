@@ -41,7 +41,7 @@ class DoorInLevel:
     gap_size_between_platforms: int = 682
 
     height_difference_between_platforms: int = 450
-    initial_water_level_distance_below_platform: int = -100
+    initial_water_level_distance_below_platform: int = 100
 
     def __post_init__(self):
         self.position_close = Point3D(

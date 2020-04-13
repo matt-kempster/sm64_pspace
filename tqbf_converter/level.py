@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Text, Tuple
 
 import jinja2
 from gadgets import DoorGadget, StartGadget
@@ -119,6 +119,34 @@ class Area:
     # movtext_inc_c: str = ""
 
 
+class LevelTemplateEnvironment(jinja2.Environment):
+    def render_collision(
+        self, area_num: int, verts: List[Tuple[int, int, int]], water: WaterBox
+    ) -> Text:
+        collision_template = self.get_template("collision.inc.c.j2")
+        return collision_template.render(area_num=area_num, verts=verts, water=water)
+
+    def render_movtext(self, water: WaterBox):
+        movtext_template = self.get_template("movtext.inc.c.j2")
+        return movtext_template.render(water=water)
+
+    def render_geo(self, area_num: int, centers: List[Tuple[str, int, int, int]]):
+        geo_template = self.get_template("geo.inc.c.j2")
+        return geo_template.render(area_num=area_num, centers=centers)
+
+    def render_script(self, areas: List[Area]):
+        script_template = self.get_template("script.inc.c.j2")
+        return script_template.render(areas=areas)
+
+    def render_model(self, platform_names: List[str], radius: int):
+        model_template = self.get_template("model.inc.c.j2")
+        return model_template.render(platform_names=platform_names, radius=radius)
+
+
+def get_template_environment(template_dir: Path) -> LevelTemplateEnvironment:
+    return LevelTemplateEnvironment(loader=jinja2.FileSystemLoader(str(template_dir)))
+
+
 def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
     # Rough strategy:
     #  - Every door has its own area so it can have its own water level.
@@ -134,38 +162,26 @@ def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
     #  - The StartGadget is where Mario starts when he begins the level.
     #  - The EndGadget contains a star.
     print("List of doors")
-
-    template_dir = Path(__file__).parent / "templates"
-    loader = jinja2.FileSystemLoader(str(template_dir))
-    env = jinja2.Environment(loader=loader)
-
-    door = DoorInLevel((0, 0, 0))
-
-    collision_template = env.get_template("collision.inc.c.j2")
-    verts = door.get_collision_verts()
-    water = door.get_water_box_definition()
-    print(collision_template.render(area_num=1, verts=verts, water=water))
-
-    movtext_template = env.get_template("movtext.inc.c.j2")
-    print(movtext_template.render(water=water))
-
-    geo_template = env.get_template("geo.inc.c.j2")
-    centers = door.get_named_centers()
-    print(geo_template.render(area_num=1, centers=centers))
-
-    script_template = env.get_template("script.inc.c.j2")
-    areas = [Area(num=1, door=door)]
-    print(script_template.render(areas=areas))
-
-    model_template = env.get_template("model.inc.c.j2")
-    platform_names = ["Open", "Traverse", "Close"]
-    print(
-        model_template.render(
-            platform_names=platform_names, radius=door.platform_half_side_length
-        )
-    )
-
     for door2 in DoorGadget.get_instances():
         print(door2.name)
+
+    template_dir = Path(__file__).parent / "templates"
+    env = get_template_environment(template_dir)
+
+    areas = [Area(num=1, door=DoorInLevel((0, 0, 0)))]
+    print(env.render_script(areas=areas))
+
+    for area in areas:
+        door = area.door
+        verts = door.get_collision_verts()
+        water = door.get_water_box_definition()
+        centers = door.get_named_centers()
+        radius = door.platform_half_side_length
+        platform_names = ["Open", "Traverse", "Close"]
+
+        print(env.render_collision(area.num, verts, water))
+        print(env.render_movtext(water))
+        print(env.render_geo(area.num, centers))
+        print(env.render_model(platform_names, radius))
 
     return SM64Level()

@@ -173,7 +173,7 @@ def gadgets_to_level(start_gadget: StartGadget, level_subdir: Path) -> SM64Level
 
     areas = [
         Area(num=1, door=DoorInLevel(Point3D(0, 0, 0))),
-        Area(num=2, door=DoorInLevel(Point3D(400, 0, 0))),
+        Area(num=2, door=DoorInLevel(Point3D(0, 0, 700))),
     ]
     script = env.render_script(areas)
     header = env.render_header(areas)

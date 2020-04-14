@@ -1693,6 +1693,12 @@ s32 execute_mario_action(UNUSED struct Object *o) {
             return 0;
         }
 
+        if (gPlayer1Controller->buttonPressed & L_TRIG) {
+            gMarioState->pos[0] = 0;
+            gMarioState->pos[1] = 0;
+            gMarioState->pos[2] = 700;
+        }
+
         // The function can loop through many action shifts in one frame,
         // which can lead to unexpected sub-frame behavior. Could potentially hang
         // if a loop of actions were found, but there has not been a situation found.

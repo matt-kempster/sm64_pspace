@@ -1,15 +1,13 @@
 #! /usr/bin/env python3.8
 import argparse
+from pathlib import Path
 
-from gadgets import (
-    create_and_hook_up_doors_clauses,
-    create_and_hook_up_quantifiers,
-)
+from gadgets import create_and_hook_up_doors_clauses, create_and_hook_up_quantifiers
 from level import SM64Level, gadgets_to_level
 from parse_qbf import QBF, get_3cnf_from_formula, verify_formula
 
 
-def translate_to_level(qbf: QBF) -> SM64Level:
+def translate_to_level(qbf: QBF, level_subdir: Path) -> SM64Level:
     door_gadgets_literals, first_clause, last_clause = create_and_hook_up_doors_clauses(
         qbf.formula.clauses
     )
@@ -18,7 +16,7 @@ def translate_to_level(qbf: QBF) -> SM64Level:
     )
     print(start_gadget)
 
-    return gadgets_to_level(start_gadget)
+    return gadgets_to_level(start_gadget, level_subdir)
 
 
 if __name__ == "__main__":
@@ -46,6 +44,17 @@ if __name__ == "__main__":
             "'(x1 OR x2 OR x3) AND (NOT(x1) OR NOT(x2) OR NOT(x4)'."
         ),
     )
+    parser.add_argument(
+        "--level_subdir",
+        default=Path(__file__).parent / "output" / "level",
+        type=Path,
+        help=(
+            "The directory of the level whose files will be replaced in level "
+            "construction, e.g. 'sm64/levels/castle_grounds'. Note that this will "
+            "not only write to this dir, but also its parent. If unspecified, "
+            "defaults to 'output' next to the source code of this program."
+        ),
+    )
     args = parser.parse_args()
 
     if args.quantifiers < 1:
@@ -53,7 +62,7 @@ if __name__ == "__main__":
 
     formula_3cnf = get_3cnf_from_formula(args.formula)
     verify_formula(args.quantifiers, formula_3cnf)
-
     input_qbf = QBF(args.quantifiers, formula_3cnf)
-    level = translate_to_level(input_qbf)
+
+    level = translate_to_level(input_qbf, args.level_subdir)
     print(level)

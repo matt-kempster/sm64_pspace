@@ -138,7 +138,7 @@ class SM64Level:
     script_inc_c: str = ""
 
 
-def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
+def gadgets_to_level(start_gadget: StartGadget, level_subdir: Path) -> SM64Level:
     # Rough strategy:
     #  - Every door has its own area so it can have its own water level.
     #  - Every door has three platform and two water diamonds.
@@ -175,12 +175,11 @@ def gadgets_to_level(start_gadget: StartGadget) -> SM64Level:
         geo = env.render_geo(area.num, centers)
         model = env.render_model(platform_names, radius)
 
-    output_dir = template_dir.parent / "output"
-    output_dir.mkdir(exist_ok=True)
-    (output_dir / "script.inc.c").write_text(script)
-    (output_dir / "collision.inc.c").write_text(collision)
-    (output_dir / "movtext.inc.c").write_text(movtext)
-    (output_dir / "geo.inc.c").write_text(geo)
-    (output_dir / "model.inc.c").write_text(model)
+    level_subdir.mkdir(parents=True, exist_ok=True)
+    (level_subdir.parent / "script.inc.c").write_text(script)
+    (level_subdir / "collision.inc.c").write_text(collision)
+    (level_subdir / "movtext.inc.c").write_text(movtext)
+    (level_subdir / "geo.inc.c").write_text(geo)
+    (level_subdir / "model.inc.c").write_text(model)
 
     return SM64Level()

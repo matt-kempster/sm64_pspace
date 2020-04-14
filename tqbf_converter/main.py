@@ -50,8 +50,7 @@ if __name__ == "__main__":
         type=Path,
         help=(
             "The directory of the level whose files will be replaced in level "
-            "construction, e.g. 'sm64/levels/castle_grounds'. Note that this will "
-            "not only write to this dir, but also its parent. If unspecified, "
+            "construction, e.g. 'sm64/levels/castle_grounds'. If unspecified, "
             "defaults to 'output' next to the source code of this program."
         ),
     )

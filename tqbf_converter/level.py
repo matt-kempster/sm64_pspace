@@ -175,11 +175,11 @@ def gadgets_to_level(start_gadget: StartGadget, level_subdir: Path) -> SM64Level
         geo = env.render_geo(area.num, centers)
         model = env.render_model(platform_names, radius)
 
-    level_subdir.mkdir(parents=True, exist_ok=True)
-    (level_subdir.parent / "script.inc.c").write_text(script)
-    (level_subdir / "collision.inc.c").write_text(collision)
-    (level_subdir / "movtext.inc.c").write_text(movtext)
-    (level_subdir / "geo.inc.c").write_text(geo)
-    (level_subdir / "model.inc.c").write_text(model)
+    (level_subdir / "area_1").mkdir(parents=True, exist_ok=True)
+    (level_subdir / "script.inc.c").write_text(script)
+    (level_subdir / "area_1" / "collision.inc.c").write_text(collision)
+    (level_subdir / "area_1" / "movtext.inc.c").write_text(movtext)
+    (level_subdir / "area_1" / "geo.inc.c").write_text(geo)
+    (level_subdir / "area_1" / "model.inc.c").write_text(model)
 
     return SM64Level()

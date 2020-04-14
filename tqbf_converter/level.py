@@ -131,7 +131,7 @@ class LevelTemplateEnvironment(jinja2.Environment):
     def render_level_geo(self, areas: List[Area]) -> str:
         level_geo_template = self.get_template("level_geo.inc.c.j2")
         return level_geo_template.render(areas=areas)
-    
+
     def render_leveldata(self, areas: List[Area]) -> str:
         leveldata_template = self.get_template("leveldata.inc.c.j2")
         return leveldata_template.render(areas=areas)
@@ -195,7 +195,8 @@ def gadgets_to_level(start_gadget: StartGadget, level_subdir: Path) -> SM64Level
 
         (level_subdir / f"area_{area.num}").mkdir(parents=True, exist_ok=True)
         (level_subdir / f"area_{area.num}" / "collision.inc.c").write_text(collision)
-        (level_subdir / f"area_{area.num}" / "movtext.inc.c").write_text(movtext)
+        if area.num == 1:  # manual hack for now
+            (level_subdir / f"area_{area.num}" / "movtext.inc.c").write_text(movtext)
         (level_subdir / f"area_{area.num}" / "geo.inc.c").write_text(geo)
 
     (level_subdir / "model.inc.c").write_text(model)

@@ -1,7 +1,8 @@
 {% for area in areas %}
 #include "levels/castle_grounds/area_{{ area.num }}/collision.inc.c"
-#include "levels/castle_grounds/area_{{ area.num }}/movtext.inc.c"
 {% endfor %}
+{# Manual hack, unfortunately: #}
+#include "levels/castle_grounds/area_1/movtext.inc.c"
 #include "levels/wdw/texture.inc.c"
 #include "levels/wdw/water_level_diamond/model.inc.c"
 #include "levels/castle_grounds/model.inc.c"

@@ -1,0 +1,11 @@
+{% for area in areas %}
+extern const GeoLayout castle_grounds_area_{{ area.num }}_Level[];
+extern const GeoLayout castle_grounds_area_{{ area.num }}_level[];
+extern const Collision castle_grounds_area_{{ area.num }}_collision[];
+extern const MacroObject castle_grounds_area_{{ area.num }}_Area_macro_objs[];
+{% endfor %}
+extern const GeoLayout water_level_dimond_geo[];
+extern const Gfx castle_grounds_Close_mesh[];
+extern const Gfx castle_grounds_Open_mesh[];
+extern const Gfx castle_grounds_Traverse_mesh[];
+extern const Gfx castle_grounds_material_revert_render_settings[];

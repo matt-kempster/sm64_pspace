@@ -124,6 +124,18 @@ class LevelTemplateEnvironment(jinja2.Environment):
         model_template = self.get_template("model.inc.c.j2")
         return model_template.render(platform_names=platform_names, radius=radius)
 
+    def render_header(self, areas: List[Area]) -> str:
+        header_template = self.get_template("header.inc.h.j2")
+        return header_template.render(areas=areas)
+
+    def render_level_geo(self, areas: List[Area]) -> str:
+        level_geo_template = self.get_template("level_geo.inc.c.j2")
+        return level_geo_template.render(areas=areas)
+    
+    def render_leveldata(self, areas: List[Area]) -> str:
+        leveldata_template = self.get_template("leveldata.inc.c.j2")
+        return leveldata_template.render(areas=areas)
+
 
 def get_template_environment(template_dir: Path) -> LevelTemplateEnvironment:
     return LevelTemplateEnvironment(loader=jinja2.FileSystemLoader(str(template_dir)))
@@ -159,8 +171,14 @@ def gadgets_to_level(start_gadget: StartGadget, level_subdir: Path) -> SM64Level
     template_dir = Path(__file__).parent / "templates"
     env = get_template_environment(template_dir)
 
-    areas = [Area(num=1, door=DoorInLevel(Point3D(0, 0, 0)))]
-    script = env.render_script(areas=areas)
+    areas = [
+        Area(num=1, door=DoorInLevel(Point3D(0, 0, 0))),
+        Area(num=2, door=DoorInLevel(Point3D(400, 0, 0))),
+    ]
+    script = env.render_script(areas)
+    header = env.render_header(areas)
+    level_geo = env.render_level_geo(areas)
+    leveldata = env.render_leveldata(areas)
 
     for area in areas:
         door = area.door
@@ -175,11 +193,15 @@ def gadgets_to_level(start_gadget: StartGadget, level_subdir: Path) -> SM64Level
         geo = env.render_geo(area.num, centers)
         model = env.render_model(platform_names, radius)
 
-    (level_subdir / "area_1").mkdir(parents=True, exist_ok=True)
+        (level_subdir / f"area_{area.num}").mkdir(parents=True, exist_ok=True)
+        (level_subdir / f"area_{area.num}" / "collision.inc.c").write_text(collision)
+        (level_subdir / f"area_{area.num}" / "movtext.inc.c").write_text(movtext)
+        (level_subdir / f"area_{area.num}" / "geo.inc.c").write_text(geo)
+
+    (level_subdir / "model.inc.c").write_text(model)
     (level_subdir / "script.inc.c").write_text(script)
-    (level_subdir / "area_1" / "collision.inc.c").write_text(collision)
-    (level_subdir / "area_1" / "movtext.inc.c").write_text(movtext)
-    (level_subdir / "area_1" / "geo.inc.c").write_text(geo)
-    (level_subdir / "area_1" / "model.inc.c").write_text(model)
+    (level_subdir / "header.inc.h").write_text(header)
+    (level_subdir / "geo.inc.c").write_text(level_geo)
+    (level_subdir / "leveldata.inc.c").write_text(leveldata)
 
     return SM64Level()

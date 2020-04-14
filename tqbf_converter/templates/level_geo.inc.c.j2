@@ -1,0 +1,4 @@
+#include "levels/wdw/header.h"
+{% for area in areas %}
+#include "levels/castle_grounds/area_{{ area.num }}/geo.inc.c"
+{% endfor %}

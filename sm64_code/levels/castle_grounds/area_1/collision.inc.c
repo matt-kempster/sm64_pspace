@@ -24,4 +24,4 @@ const Collision castle_grounds_area_1_collision[] = {
     COL_WATER_BOX_INIT(1),
     COL_WATER_BOX(0x00, -895, -213, 895, 213, -550),
     COL_END()
-};// hi
+};
